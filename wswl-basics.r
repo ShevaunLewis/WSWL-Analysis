@@ -3,31 +3,41 @@
 ##### Created 8/7/2014
 
 setwd("/Volumes/Landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results/")
-#source("WSWL-Analysis/wswl-getdata.r")
+source("WSWL-Analysis/wswl-getdata.r")
 load("wswl-data.Rda")
+source("WSWL-Analysis/wswl-functions.r")
 
-library(ggplot2)
-wswl.smallplots = theme(text = element_text(family="serif", size=12),
-                           axis.title = element_text(size=14),
-                           plot.title=element_text(size=16),
-                           legend.title = element_text(size=14, face="plain"),
-                           panel.grid = element_blank())
+#### Subject demographics ####
+wsSubjs = subjInfoBasic[subjInfoBasic$ageGroup=="WS",]
+summary(wsSubjs$ageV1Mos)
+td18Subjs = subjInfoBasic[subjInfoBasic$ageGroup=="18M",]
+summary(td18Subjs$ageV1Mos)
+td24Subjs = subjInfoBasic[subjInfoBasic$ageGroup=="24M",]
+summary(td24Subjs$ageV1Mos)
 
 #### Vocabulary by age ####
-head(subjInfo)
-
 ggplot(subjInfo, aes(x=ageV1Mos, shape=Group, y=WordsProduced)) +
-  geom_point(stat="identity") + 
+  geom_point(size=1) + 
   theme_bw() + 
   labs(title="Vocabulary by age",y="Words Produced",x="Age (mos)",shape="Group") +
   wswl.smallplots
-dev.print(png,file="PilotResults/VocabXAge_scatter.png", width=400, height=350)
+dev.print(png,file="PilotResults/VocabXAge_scatter.png", width=700,height=600,res=200)
 
-ggplot(subjInfo, aes(x=ageGroup, y=WordsProduced)) +
-  geom_boxplot() + geom_point() + theme_bw() + 
-  labs(title="Vocabulary by age and group", y="Words Produced", x="Group") +
+ggplot(subjInfo, aes(x=ageV1Mos, color=ageGroup, y=WordsProduced)) +
+  geom_boxplot() + geom_point(size=1) + 
+  theme_bw() + scale_color_manual(values=c("royalblue1","royalblue4","orangered")) +
+  labs(title="Vocabulary by group and age", y="Words Produced", x="Age (mos)", color="Group") +
   wswl.smallplots
-dev.print(png,file="PilotResults/VocabXGroup_boxplot.png", width=350, height=350)
+dev.print(png,file="PilotResults/VocabXGroup_boxplot.png", width=700,height=600,res=200)
+
+## median vocabulary
+summary(subjInfo$WordsProduced)
+subjInfo$VocabGroup = ifelse(subjInfo$WordsProduced < median(subjInfo$WordsProduced), "low","high")
+xtabs(~VocabGroup, data=subjInfo)
+lowGroup = subjInfo[subjInfo$VocabGroup=="low",]
+summary(lowGroup)
+highGroup = subjInfo[subjInfo$VocabGroup=="high",]
+summary(highGroup)
 
 #### Mullens by age ####
 ggplot(subjInfo, aes(x=ageV1Mos, shape=Group, y=mullenRL)) +

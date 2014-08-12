@@ -31,8 +31,11 @@ subjInfo$PL_date = as.Date(as.character(subjInfo$PL_date), "%m/%d/%y")
 # Calculate age, add age groups
 subjInfo$ageV1Mos = round(as.integer(subjInfo$date1 - subjInfo$dob)/365*12, digits=1)
 summary(subjInfo$ageV1Mos)
-subjInfo$ageGroup = as.factor(ifelse(subjInfo$Group=="TD", ifelse(subjInfo$ageV1Mos<22, "18M", "24M"),"WS"))
+subjInfo$ageGroup = as.factor(ifelse(subjInfo$Group=="TD", ifelse(subjInfo$ageV1Mos<21, "18M", "24M"),"WS"))
 
+# remove unnecessary columns
+subjInfo = subjInfo[,c(1,4:11,14:15)]
+subjInfoBasic = subjInfo
 
 #### CDI ####
 
@@ -45,7 +48,7 @@ subjInfo = merge(subjInfo, cdi[,c("Subj","WordsProduced")], all.x=T)
 #### Mullen ####
 
 # add raw scores to subject info
-mullen$Date = as.Date(as.character(mullen$Date), "%m/%d/%y")
+mullen$Mullen_date = as.Date(as.character(mullen$Mullen_date), "%m/%d/%y")
 colnames(mullen) <- c("Subj","Date","mullenGM","mullenVR","mullenFM","mullenRL","mullenEL")
 subjInfo = merge(subjInfo, mullen, all.x=T)
 
@@ -71,5 +74,5 @@ wl$Target = as.character(wl$Target)
 wl$Response = as.character(wl$Response)
 
 #### Save data, clear environment ####
-save(subjInfo, parentLabelCodes, parentLabels, wl, file="wswl-data.Rda")
+save(subjInfo, subjInfoBasic, parentLabelCodes, parentLabels, wl, file="wswl-data.Rda")
 rm(list=ls())
