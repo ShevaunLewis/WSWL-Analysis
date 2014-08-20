@@ -2,17 +2,15 @@
 ##### Parent Labeling (first code)
 ##### Created 7/25/2014
 
-#setwd("/Volumes/Landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results/")
-setwd("/Users/Shevaun/Desktop/Results/")
+setwd("/Volumes/Landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results/")
 source("WSWL-Analysis/wswl-getdata.r")
+source("WSWL-Analysis/wswl-functions.r")
 
 load("wswl-data.Rda")
 
-# throw out TD01 for now; not yet coded
-parentLabels = droplevels(subset(parentLabels, SubjID!="TD01"))
-
 # add subject info
-parentLabels = merge(subjInfo, parentLabels, by.x = "Subj", by.y = "SubjID", all.y=T)
+parentLabels = droplevels(merge(subjInfo, parentLabels, by.x = "Subj", by.y = "SubjID", all.y=T))
+parentLabels$VocabGroupTD = ordered(parentLabels$VocabGroupTD, levels=c("low","high"))
 
 ##### Count labels #####
 xtabs(~Subj + uttType, data=parentLabels)
@@ -23,12 +21,61 @@ xtabs(~ageGroup + uttType, data=parentLabels)
 xtabs(~ageGroup + category, data=parentLabels)
 xtabs(~category + uttType + ageGroup, data=parentLabels)
 
-## make data frame just with the counts of different utterance types for each parent
-parentUtts = xtabs(~Subj, data=parentLabels)
-parentUttTypes = xtabs(~Subj + uttType, data=parentLabels)
-# add subject info (including CDI and Mullen)
-parentUtts = merge(parentUtts, subjInfo, all.x = T)
-parentUttTypes = merge(parentUtts, subjInfo, all.x = T)
+## Is there a relationship between vocabulary size and the number of utterances about target objects?
+parentUttsTotal = ddply(parentLabels, .(Subj,VocabGroupTD), nrow)
+colnames(parentUttsTotal)[3] <- "totalUtts"
+
+ggplot(parentUttsTotal, aes(x=VocabGroupTD, y=totalUtts)) +
+  geom_boxplot() + geom_point(size=1) + 
+  theme_bw() +
+  labs(title="Number of utterances about objects",y="# utterances",x="Vocab Size") +
+  wswl.smallplots
+dev.print(png,file="PilotResults/PL_UttsXVocab.png", width=400,height=600,res=200)
+
+## Is there a relationship between vocabulary size and the number of LABELS?
+parentLabelsTotal = ddply(subset(parentLabels,uttType=="label"),.(Subj,VocabGroupTD),nrow)
+colnames(parentLabelsTotal)[3] <- "totalLabels"
+
+ggplot(parentLabelsTotal, aes(x=VocabGroupTD, y=totalLabels)) +
+  geom_boxplot() + geom_point(size=1) + 
+  theme_bw() +
+  labs(title="Number of labels for target objects",y="# labels",x="Vocab Size") +
+  wswl.smallplots
+dev.print(png,file="PilotResults/PL_LabelsXVocab.png", width=400,height=600,res=200)
+
+## Count of label types by subject
+parentLabelTypes = ddply(subset(parentLabels,uttType=="label"), .(Subj,category), nrow)
+colnames(parentLabelTypes)[3] <- "num"
+
+# add zeros for missing values
+parentLabelTypeCounts = reshape(parentLabelTypes, timevar="category", idvar="Subj",direction="wide")
+parentLabelTypeCounts[is.na(parentLabelTypeCounts)] <- 0
+
+# sum labels that were not unseen
+parentLabelTypeCounts$totalSeenLabels = with(parentLabelTypeCounts, num.followin+num.sharedattn+num.discrepant)
+parentLabelTypeCounts = merge(parentLabelTypeCounts,parentLabelsTotal)
+
+parentLabelTypes = reshape(parentLabelTypeCounts, idvar="Subj", 
+                           varying = c("num.followin","num.sharedattn","num.discrepant","num.unseen"), direction="long")
+colnames(parentLabelTypes)[5] <- "category"
+
+parentLabelTypes = merge(parentLabelTypes,parentLabelsTotal)
+
+parentLabelTypes$prop = parentLabelTypes$num/parentLabelTypes$totalSeenLabels
+
+parentLabelTypes.avg = ddply(subset(parentLabelTypes,category!="unseen"), .(category,VocabGroupTD), function(df) {mean(df$prop)})
+
+ggplot(parentLabelTypes.avg, aes(x=VocabGroupTD, fill=category, y=V1)) +
+  geom_bar(stat="identity") + theme_bw() + wswl.smallplots + scale_fill_grey() +
+  labs(title = "Label types", y="Proportion of labels", fill="Label types", x = "Vocabulary Size")
+dev.print(png, file="PilotResults/PL_LabelTypesXVocab.png",width=600, height=600, res=200)
+
+parentLabelTypes.glm = glm(cbind(parentLabelTypeCounts$num.discrepant, parentLabelTypeCounts$num.sharedattn+parentLabelTypeCounts$num.followin) ~
+                             VocabGroupTD, parentLabelTypeCounts, family=binomial)
+summary(parentLabelTypes.glm)
+
+save(parentUttsTotal,parentLabelTypes,parentLabelTypeCounts,parentLabelTypes.avg, file="wswl-PL.Rda")
+
 
 head(parentUtts)
 

@@ -2,6 +2,7 @@
 ##### Functions for plotting, aggregation, etc. 
 ##### Created 8/11/2014
 
+library(plyr)
 
 #### PLOTTING ####
 library(ggplot2)

@@ -183,3 +183,13 @@ wl.acc(wl.alltrials.byage,c("ageGroup","Cond"))
 
 wl.firsttrial.byage = wl.acc(subset(wl.novel, CompTrial==1), c("Subj","ageGroup","Cond"))
 wl.acc(wl.firsttrial.byage,c("ageGroup","Cond"))
+
+save(wl, wl.familiar, wl.novel, wl.itemsfinished, wl.novel.sumacc.bycond, wl.alltrials.bycond.bysubj, file="wswl-WL.Rda")
+
+
+#### STATS ####
+library(lme4)
+wl.novel = droplevels(wl.novel)
+wl.novel.nodiscrepant = droplevels(subset(wl.novel,Cond!="Discrepant"))
+
+summary(glmer(acc~Cond*ageV1Mos+(1+Cond|Subj)+(1|Item), data=droplevels(wl.novel.nodiscrepant), family="binomial"))

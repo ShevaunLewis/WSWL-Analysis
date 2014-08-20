@@ -45,6 +45,12 @@ cdi$Date = as.Date(as.character(cdi$Date), "%m/%d/%y")
 # add WordsProduced to subject info
 subjInfo = merge(subjInfo, cdi[,c("Subj","WordsProduced")], all.x=T)
 
+# median vocabulary
+subjInfo$VocabGroup = ifelse(subjInfo$WordsProduced < median(subjInfo$WordsProduced), "low","high")
+subjInfo$VocabGroupTD = ifelse(subjInfo$WordsProduced < median(subjInfo$WordsProduced[subjInfo$Group=="TD"]), 
+                               "low","high")
+
+
 #### Mullen ####
 
 # add raw scores to subject info

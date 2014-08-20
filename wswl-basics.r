@@ -30,14 +30,13 @@ ggplot(subjInfo, aes(x=ageV1Mos, color=ageGroup, y=WordsProduced)) +
   wswl.smallplots
 dev.print(png,file="PilotResults/VocabXGroup_boxplot.png", width=700,height=600,res=200)
 
-## median vocabulary
-summary(subjInfo$WordsProduced)
-subjInfo$VocabGroup = ifelse(subjInfo$WordsProduced < median(subjInfo$WordsProduced), "low","high")
+## median vocabulary split
 xtabs(~VocabGroup, data=subjInfo)
 lowGroup = subjInfo[subjInfo$VocabGroup=="low",]
 summary(lowGroup)
 highGroup = subjInfo[subjInfo$VocabGroup=="high",]
 summary(highGroup)
+
 
 #### Mullens by age ####
 ggplot(subjInfo, aes(x=ageV1Mos, shape=Group, y=mullenRL)) +
