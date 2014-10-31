@@ -6,7 +6,7 @@ setwd("/Volumes/Landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results/")
 source("WSWL-Analysis/wswl-getdata.r")
 source("WSWL-Analysis/wswl-functions.r")
 load("wswl-data.Rda")
-
+load("wswl-WL.Rda")
 
 #### Accuracy ####
 wl$acc = ifelse(wl$Response==wl$Target,1,0)
@@ -130,6 +130,11 @@ wl.alltrials.bycond.bysubj = merge(wl.alltrials.bycond.bysubj, subjInfo)
 wl.alltrials.bycond.bysubj$Cond = ordered(wl.alltrials.bycond.bysubj$Cond, 
                                           levels=c("FollowIn","Joint","Discrepant"), labels=c("FollowIn","JointAttn","Discrepant"))
 wl.alltrials.bycond.bysubj$VocabGroup = ordered(wl.alltrials.bycond.bysubj$VocabGroup,levels=c("low","high"))
+
+wl.td = subset(wl.alltrials.bycond.bysubj, Group=="TD"&Subj!="TD11")
+wl.td.avg = ddply(wl.td, .(Cond,VocabGroupTD), function(df){mean(df$acc)})
+wl.td.rawnums = ddply(droplevels(subset(wl.novel, Group=="TD"&Subj!="TD11"&!(Response%in%c("na","nr")))), .(Cond, VocabGroupTD), cbind(correct=function(df){sum(df$acc)}, nrow))
+wl.td.rawnums$binom = binom.test(wl.td.rawnums$V1, wl.td.rawnums$V2, p=0.5)
 
 ## age groups
 dodge <-position_dodge(width=.8)

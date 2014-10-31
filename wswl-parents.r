@@ -7,12 +7,18 @@ source("WSWL-Analysis/wswl-getdata.r")
 source("WSWL-Analysis/wswl-functions.r")
 
 load("wswl-data.Rda")
+load("wswl-PL.Rda")
+
+### Reliability
+with(parentLabelCodes,mean(as.numeric(uttType1==uttType2))) ## 92.1%
+with(parentLabelCodes,mean(as.numeric(category1==category2))) ## 86.8%
 
 # add subject info
 parentLabels = droplevels(merge(subjInfo, parentLabels, by.x = "Subj", by.y = "SubjID", all.y=T))
 parentLabels$VocabGroupTD = ordered(parentLabels$VocabGroupTD, levels=c("low","high"))
 
 ##### Count labels #####
+xtabs(~Subj, data=parentLabels)
 xtabs(~Subj + uttType, data=parentLabels)
 xtabs(~Subj + category, data=parentLabels)
 xtabs(~ uttType + category, data=parentLabels)
@@ -64,6 +70,7 @@ parentLabelTypes = merge(parentLabelTypes,parentLabelsTotal)
 parentLabelTypes$prop = parentLabelTypes$num/parentLabelTypes$totalSeenLabels
 
 parentLabelTypes.avg = ddply(subset(parentLabelTypes,category!="unseen"), .(category,VocabGroupTD), function(df) {mean(df$prop)})
+ddply(subset(parentLabelTypes,category!="unseen"), .(category), function(df) {mean(df$prop)})
 
 ggplot(parentLabelTypes.avg, aes(x=VocabGroupTD, fill=category, y=V1)) +
   geom_bar(stat="identity") + theme_bw() + wswl.smallplots + scale_fill_grey() +

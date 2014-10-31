@@ -17,18 +17,17 @@ summary(td24Subjs$ageV1Mos)
 
 #### Vocabulary by age ####
 ggplot(subjInfo, aes(x=ageV1Mos, shape=Group, y=WordsProduced)) +
-  geom_point(size=1) + 
-  theme_bw() + 
-  labs(title="Vocabulary by age",y="Words Produced",x="Age (mos)",shape="Group") +
-  wswl.smallplots
+  geom_point(size=1.25) + theme_bw() + wswl.smallplots +
+  labs(title="Vocabulary by age",y="Words Produced",x="Age (mos)",shape="Group")
 dev.print(png,file="PilotResults/VocabXAge_scatter.png", width=700,height=600,res=200)
+dev.print(png,file="PilotResults/VocabXAge_scatter_small.png", width=600,height=450,res=200)
 
-ggplot(subjInfo, aes(x=ageV1Mos, color=ageGroup, y=WordsProduced)) +
+ggplot(droplevels(subset(subjInfo, ageGroup %in% c("18M","24M","WS"))), aes(x=ageV1Mos, color=ageGroup, y=WordsProduced)) +
   geom_boxplot() + geom_point(size=1) + 
   theme_bw() + scale_color_manual(values=c("royalblue1","royalblue4","orangered")) +
   labs(title="Vocabulary by group and age", y="Words Produced", x="Age (mos)", color="Group") +
   wswl.smallplots
-dev.print(png,file="PilotResults/VocabXGroup_boxplot.png", width=700,height=600,res=200)
+dev.print(png,file="Results_10-27-14/VocabXGroup_boxplot.png", width=3.5,height=3,units="in",res=300)
 
 ## median vocabulary split
 xtabs(~VocabGroup, data=subjInfo)
