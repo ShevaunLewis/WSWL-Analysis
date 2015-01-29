@@ -27,7 +27,7 @@ ggplot(droplevels(subset(subjInfo, ageGroup %in% c("18M","24M","WS"))), aes(x=ag
   theme_bw() + scale_color_manual(values=c("royalblue1","royalblue4","orangered")) +
   labs(title="Vocabulary by group and age", y="Words Produced", x="Age (mos)", color="Group") +
   wswl.smallplots
-dev.print(png,file="Results_10-27-14/VocabXGroup_boxplot.png", width=3.5,height=3,units="in",res=300)
+dev.print(png,file="Results_1-29-15/VocabXGroup_boxplot.png", width=3.5,height=3,units="in",res=300)
 
 ## median vocabulary split
 xtabs(~VocabGroup, data=subjInfo)
@@ -42,6 +42,9 @@ ggplot(subjInfo, aes(x=ageV1Mos, shape=Group, y=mullenRL)) +
   geom_point() + theme_bw() + 
   labs(title="Receptive language by age",y="Mullen RL raw score",x="Age (mos)",shape="Group") +
   wswl.smallplots
+
+ggplot(subset(subjInfo, ageGroup %in% c("18M","24M","WS")),aes(x=ageV1Mos, color=ageGroup, y=mullenRL)) + 
+  geom_boxplot() + geom_point(size=1)
 
 ggplot(subjInfo, aes(x=ageV1Mos, shape=Group, y=mullenVR)) +
   geom_point() + theme_bw() + 

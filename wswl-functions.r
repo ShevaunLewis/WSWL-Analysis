@@ -3,6 +3,9 @@
 ##### Created 8/11/2014
 
 library(plyr)
+library(lme4)
+library(stats)
+
 
 #### PLOTTING ####
 library(ggplot2)

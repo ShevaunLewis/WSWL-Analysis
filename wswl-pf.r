@@ -1,6 +1,7 @@
 ##### Social Word Learning Analysis
 ##### Point following (first code)
 ##### Created 9/18/14
+##### Updated 10/31/14
 
 setwd("/Volumes/Landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results/")
 source("WSWL-Analysis/wswl-getdata.r")
@@ -16,6 +17,27 @@ rel = with(pf2codes, aggregate(lookRel,makefactorlist(pf2codes,c("Separation","D
 xtabs(~lookRel+Separation+Distance,data=pf2codes)
 pf2codes.exp = subset(pf2codes,Position!="center")
 relexp = with(pf2codes.exp, aggregate(lookRel,makefactorlist(pf2codes.exp,c("Separation","Distance")), mean))
+
+#### Average look types by subject ####
+## Count of label types by subject
+pf.lookcounts.bysubj = ddply(pf, .(SubjID,look), nrow)
+colnames(pf.lookcounts.bysubj)[3] <- "num"
+
+# add zeros for missing values
+pf.lookcounts.bysubj = reshape(pf.lookcounts.bysubj, timevar="look", idvar="SubjID",direction="wide")
+pf.lookcounts.bysubj[is.na(pf.lookcounts.bysubj)] <- 0
+pf.lookcounts.bysubj$totalTrials = with(pf.lookcounts.bysubj, num.Imm+num.Delay+num.NoTarget+num.NoEyeContact)
+pf.lookcounts.bysubj$totalLooks = with(pf.lookcounts.bysubj, num.Imm+num.Delay)
+pf.lookcounts.bysubj$totalGoodTrials = with(pf.lookcounts.bysubj, num.Imm+num.Delay+num.NoTarget)
+pf.lookcounts.bysubj = reshape(pf.lookcounts.bysubj, idvar="SubjID", 
+                           varying = c("num.Imm","num.Delay","num.NoTarget","num.NoEyeContact"), direction="long")
+colnames(pf.lookcounts.bysubj)[5] <- "lookType"
+pf.lookcounts.bysubj$prop = pf.lookcounts.bysubj$num/pf.lookcounts.bysubj$totalTrials
+
+pf.lookcounts.bysubj = merge(pf.lookcounts.bysubj, subjInfo, all.x=T)
+
+save(pf.lookcounts.bysubj, file="wswl-PF.Rda")
+load("wswl-PF.Rda")
 
 ##### Summary plots #####
 ## total looks of each type, by age group
@@ -60,6 +82,52 @@ ggplot(pf.mullen, aes(x=mullenVR,fill=look)) +
   geom_bar(position="fill") + 
   theme_bw() + scale_fill_manual(values=c("green4","yellow","red","gray")) + wswl.smallplots +
   labs(title="Mullen VR: Looks (good trials)",y="Proportion of looks",x="Mullen VR score",fill="Child's look")
+
+## Total immediate looks by Words Produced
+ggplot(droplevels(subset(pf, look=="Imm")), aes(x=WordsProduced, color=SubjID)) + 
+  geom_point(stat="bin") + facet_grid(~ageGroup) + theme_bw()
+
+## Looks by individual vocabulary size
+ggplot(pf, aes(x=WordsProduced,fill=look)) +
+  geom_bar(position="fill", binwidth=2) + facet_grid(Group~.) +
+  theme_bw() + scale_fill_manual(values=c("green4","yellow","red","gray")) + xlim(0,400) +
+  labs(title="Looks by type",y="Number of looks",x="Words Produced",fill="Child's look") + 
+  wswl.smallplots + theme(legend.position="none")
+dev.print(png, file="Results_10-27-14/PF_looktypesXExactVocab.png",width=7, height=3, units="in",res=300)
+
+ggplot(pf, aes(x=WordsProduced,fill=look)) +
+  geom_bar(position="fill", binwidth=25) + facet_grid(Group~.) +
+  theme_bw() + scale_fill_manual(values=c("green4","yellow","red","gray")) + xlim(0,400) +
+  labs(title="Looks by type",y="Number of looks",x="Words Produced",fill="Child's look") + 
+  wswl.smallplots + theme(legend.position="none")
+dev.print(png, file="Results_10-27-14/PF_looktypesXVocab25.png",width=7, height=3, units="in",res=300)
+
+## Successful trials by vocabulary size and group
+ggplot(subset(pf.lookcounts.bysubj, lookType=="NoEyeContact"), aes(x=WordsProduced,y=(totalTrials-num),color=Group,shape=Group)) + 
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,24) + scale_color_manual(values=c("royalblue1","orangered")) +
+  theme_bw() + labs(title = "Trials with eye contact", y="Number of trials with eye contact", x="Vocabulary") + 
+  wswl.smallplots
+dev.print(png, file="Results_1-29-15/PF_goodtrialsXVocab.png", width=3,height=3,units="in",res=300)
+
+#reverse axes
+ggplot(subset(pf.lookcounts.bysubj, lookType=="NoEyeContact"),aes(x=(totalTrials-num),y=WordsProduced,color=Group,shape=Group)) + 
+  geom_point() + geom_smooth(method=lm, se=F)
+
+## Immediate looks by vocabulary size and group
+ggplot(subset(pf.lookcounts.bysubj,lookType=="Imm"), aes(x=WordsProduced, y=(num/totalTrials),color=Group, shape=Group)) + 
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,1) + scale_color_manual(values=c("royalblue1","orangered")) +
+  theme_bw() + labs(title="Proportion immediate looks", y="Proportion immediate looks", x="Vocabulary") + 
+  wswl.smallplots
+dev.print(png, file="Results_1-29-15/PF_propImmXVocab.png",width=3, height=3, units="in",res=300)
+
+
+
+## looks (immediate or delayed) by vocab size and group
+ggplot(subset(pf.lookcounts.bysubj,lookType=="Imm"), aes(x=WordsProduced, y=(totalLooks/totalTrials),color=Group,shape=Group)) + 
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,1) + scale_color_manual(values=c("royalblue1","orangered")) +
+  theme_bw() + labs(title="Looks to target (imm. or delayed)",y="Proportion looks to target",x="Vocabulary") + 
+  wswl.smallplots
+dev.print(png, file="Results_1-29-15/PF_propTargetXVocab.png",width=3, height=3, units="in",res=300)
 
 ##### Near vs. Far #####
 # groups, all trials
@@ -205,4 +273,22 @@ ggplot(pf.good, aes(x=PositionRel,fill=look)) +
   labs(title="Group: Looks by Animacy & Rel. Pos.",y="Proportion of looks",x="Distance",fill="Child's look") 
 dev.print(png, file="Results_10-27-14/PF_looktypesXGroupXAnimacy_good.png", width=4, height=4, units="in",res=400)
 
+
+#### STATS ####
+
+pf$goodtrial = as.numeric(pf$lookF!="NoEyeContact")
+contrasts(pf$Group) <- contr.helmert(2)
+summary(glm(goodtrial~Group*WordsProduced, data=pf, family="binomial"))
+
+pf$Imm = as.numeric(pf$lookF=="Imm")
+summary(glm(Imm~Group*WordsProduced, data=pf, family="binomial"))
+summary(glm(Imm~WordsProduced, data=subset(pf, Group=="TD"), family="binomial")) #significant relationship for TD
+summary(glm(Imm~WordsProduced, data=subset(pf, Group=="WS"), family="binomial")) #no relationship for WS
+
+pf$ImmDel = as.numeric(pf$lookF %in% c("Imm","Delay"))
+summary(glm(ImmDel~Group*WordsProduced, data=pf, family="binomial"))
+
+pf.lookcounts.bysubj = droplevels(pf.lookcounts.bysubj)
+contrasts(pf.lookcounts.bysubj$Group)<-contr.helmert(2)
+summary(lm(WordsProduced ~ (totalGoodTrials/totalTrials)*Group,data=subset(pf.lookcounts.bysubj,lookType=="Imm")))
 

@@ -29,13 +29,12 @@ ggplot(wl.itemsfinished, aes(x=ageV1Mos,color=ageGroup, y=Freq)) +
 dev.print(png,file="PilotResults/WL_TrialsXGroup.png", width=700,height=600,res=200)
 
 wl.itemsfinished$VocabGroup = ordered(wl.itemsfinished$VocabGroup,levels=c("low","high"))
-ggplot(wl.itemsfinished, aes(x=VocabGroup,y=Freq)) +
-  geom_boxplot(size=.25) + 
-  theme_bw() + scale_color_manual(values=c("royalblue1","royalblue4","orangered")) +
-  labs(title="WL trials completed",y="# trials completed",x="Age (mos)") +
-  wswl.smallplots
-dev.print(png, file="PilotResults/WL_TrialsXVocab.png",width=600,height=600,res=200)
 
+ggplot(wl.itemsfinished, aes(x=WordsProduced,y=Freq,color=Group,shape=Group)) +
+  geom_point() + geom_smooth(method=lm, se=F) + scale_color_manual(values=c("royalblue1","orangered")) +
+  theme_bw() + labs(title="Word Learning trials completed",y="# trials completed",x="Vocabulary") + 
+  wswl.smallplots
+dev.print(png, file="Results_1-29-15/WL_TrialsXVocabXGroup.png",width=3,height=3,units="in",res=300)
 
 #### Means by subject ####
 
@@ -153,6 +152,12 @@ ggplot(wl.alltrials.bycond.bysubj, aes(x = Cond, color=VocabGroup, y=acc)) +
   wswl.smallplots
 dev.print(png,file="PilotResults/WL_AccNovelCondsXVocab.png", width=700,height=600,res=200)
 
+ggplot(subset(wl.alltrials.bycond.bysubj,Group=="TD"),aes(x=WordsProduced,y=acc)) + 
+  geom_point(color="royalblue1") + geom_smooth(method=lm, se=F) + facet_wrap(~Cond) + 
+  theme_bw() + labs(title="Accuracy on novel words (TD only)",y="Proportion correct",x="Vocabulary") + 
+  wswl.smallplots
+dev.print(png,file="Results_1-29-15/WL_TD_AccNovelXVocabXCond.png",width=4,height=3,units="in",res=300)
+
 ## number correct (instead of proportion)
 wl.novel.sumacc.bycond = wl.sumacc(wl.novel.responded, c("Subj","Cond"))
 wl.novel.sumacc.bycond = merge(wl.novel.sumacc.bycond, subjInfo)
@@ -176,6 +181,8 @@ ggplot(wl.novel.sumacc.bycond, aes(x = Cond, color=VocabGroup, y=sum_acc)) +
   wswl.smallplots
 dev.print(png,file="PilotResults/WL_SumAccNovelCondsXVocab.png", width=700,height=600,res=200)
 
+
+
 ### first trials, by subject, by cond
 wl.firsttrial.bysubj = wl.acc(wl.acc(subset(wl.novel.responded, CompTrial==1), c("Item","Subj","Cond")),c("Subj","Cond"))
 wl.firsttrial.bysubj = merge(wl.firsttrial.bysubj, subjInfo)
@@ -193,7 +200,6 @@ save(wl, wl.familiar, wl.novel, wl.itemsfinished, wl.novel.sumacc.bycond, wl.all
 
 
 #### STATS ####
-library(lme4)
 wl.novel = droplevels(wl.novel)
 wl.novel.nodiscrepant = droplevels(subset(wl.novel,Cond!="Discrepant"))
 

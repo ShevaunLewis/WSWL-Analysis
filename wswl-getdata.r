@@ -36,7 +36,8 @@ subjInfo$PL_date = as.Date(as.character(subjInfo$PL_date), "%m/%d/%y")
 subjInfo$ageV1Mos = round(as.integer(subjInfo$date1 - subjInfo$dob)/365*12, digits=1)
 summary(subjInfo$ageV1Mos)
 subjInfo$ageGroup = as.factor(ifelse(grepl("Pilot",subjInfo$Group),as.character(subjInfo$Group),
-                                     ifelse(subjInfo$Group=="TD", ifelse(subjInfo$ageV1Mos<21, "18M", "24M"),"WS")))
+                                     ifelse(subjInfo$Group=="TD", ifelse(subjInfo$ageV1Mos<21, "18M", 
+                                                                         ifelse(subjInfo$ageV1Mos>27,"30M","24M")),"WS")))
 
 # remove unnecessary columns
 subjInfo = subjInfo[,c(1,4:12,15:16)]
@@ -48,7 +49,7 @@ subjInfoBasic = subjInfo
 cdi$Date = as.Date(as.character(cdi$Date), "%m/%d/%y")
 
 # add WordsProduced to subject info
-subjInfo = merge(subjInfo, cdi[,c("Subj","WordsProduced")], all.x=T)
+subjInfo = merge(subjInfo, cdi[,c("SubjID","WordsProduced")], all.x=T)
 
 # median vocabulary
 subjInfo$VocabGroup = ifelse(subjInfo$WordsProduced < median(subjInfo$WordsProduced[!(subjInfo$Group%in%c("Pilot-TD","Pilot-WS"))], na.rm=T), "low","high")
@@ -67,7 +68,7 @@ subjInfo$VocabByGroup = with(subjInfo, ifelse(ageGroup=="18M",
 
 # add raw scores to subject info
 mullen$Mullen_date = as.Date(as.character(mullen$Mullen_date), "%m/%d/%y")
-colnames(mullen) <- c("Subj","Date","mullenGM","mullenVR","mullenFM","mullenRL","mullenEL")
+colnames(mullen) <- c("SubjID","Date","mullenGM","mullenVR","mullenFM","mullenRL","mullenEL")
 subjInfo = merge(subjInfo, mullen, all.x=T)
 
 #### Parent labels ####
@@ -87,12 +88,16 @@ detach(parentLabels)
 
 parentLabels = parentLabels[,c(1:6,22:27)]
 
+# add subject info
+parentLabels = droplevels(merge(subjInfo, parentLabels, all.y=T))
+parentLabels$VocabGroupTD = ordered(parentLabels$VocabGroupTD, levels=c("low","high"))
+
 #### Word Learning ####
 wl$Target = as.character(wl$Target)
 wl$Response = as.character(wl$Response)
 
 #### Point Following ####
-pf = merge(pf, subjInfo, by.x = "SubjID", by.y = "Subj", all.x=TRUE)
+pf = merge(pf, subjInfo, all.x=TRUE)
 
 ## If final code is not yet available, use code2
 pf$lookF = ifelse(pf$lookF=="",as.character(pf$look2),as.character(pf$lookF))
@@ -167,4 +172,5 @@ pf.good = droplevels(subset(pf,lookF!="NoEyeContact"&attempt=="only"))
 
 #### Save data, clear environment ####
 save(subjInfo, subjInfoBasic, parentLabelCodes, parentLabels, wl, pf, pfTrials, pf_full, pf.good, file="wswl-data.Rda")
+write.csv(subjInfo,file="subjInfoDetails.csv",row.names=FALSE)
 rm(list=ls())
