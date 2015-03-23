@@ -1,34 +1,32 @@
 ##### Social Word Learning Analysis
 ##### Word Learning (from online paper codes)
 ##### Created 8/7/2014
+##### Updated 3/4/2015
 
 setwd("/Volumes/Landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results/")
 source("WSWL-Analysis/wswl-getdata.r")
 source("WSWL-Analysis/wswl-functions.r")
-load("wswl-data.Rda")
-load("wswl-WL.Rda")
+load("ROutput/wswl-wl.Rda")
+load("ROutput/wswl-subjInfo.Rda")
 
-#### Accuracy ####
-wl$acc = ifelse(wl$Response==wl$Target,1,0)
+#### 
+wl.byitem.td = droplevels(subset(wl.byitem,ageGroup %in% c("18M","24M") & Cond!="Practice"))
+contrasts(wl.byitem.td$Cond) = contr.helmert(3)
+summary(glm(cbind(item.acc,(comptrials - item.acc)) ~ WordsProduced + Cond + TrialType, data=wl.byitem.td, family="binomial"))
+summary(glm(cbind(item.acc,(comptrials - item.acc)) ~ WordsProduced + Cond, data=subset(wl.byitem.td,TrialType=="novel"), family="binomial"))
 
-#### Comprehension trial types ####
-comptrials = data.frame(CompTrial=c(1,2,3,4,5), TrialType=c("novel","familiar","novel","familiar","novel"))
-wl = merge(wl,comptrials,all.x=T)
-wl = merge(subjInfo,wl,all=T)
 
-#### How many comprehension trials did each subject finish? ####
-wl.response = subset(wl,!(Response%in%c("na","nr")))
-wl.itemsfinished = as.data.frame(xtabs(~Subj, data=wl.response))
-wl.itemsfinished = merge(wl.itemsfinished,subjInfo)
 
-ggplot(wl.itemsfinished, aes(x=ageV1Mos,color=ageGroup, y=Freq)) +
+
+
+#### Trials completed ####
+## by group and age:
+ggplot(wl.trialsfinished, aes(x=ageV1Mos,color=ageGroup, y=Freq)) +
   geom_boxplot() + geom_point(size=1) + 
   theme_bw() + scale_color_manual(values=c("royalblue1","royalblue4","orangered")) +
   labs(title="WL trials completed",y="# trials completed",x="Age (mos)",color="Group") +
   wswl.smallplots
 dev.print(png,file="PilotResults/WL_TrialsXGroup.png", width=700,height=600,res=200)
-
-wl.itemsfinished$VocabGroup = ordered(wl.itemsfinished$VocabGroup,levels=c("low","high"))
 
 ggplot(wl.itemsfinished, aes(x=WordsProduced,y=Freq,color=Group,shape=Group)) +
   geom_point() + geom_smooth(method=lm, se=F) + scale_color_manual(values=c("royalblue1","orangered")) +
@@ -36,15 +34,22 @@ ggplot(wl.itemsfinished, aes(x=WordsProduced,y=Freq,color=Group,shape=Group)) +
   wswl.smallplots
 dev.print(png, file="Results_1-29-15/WL_TrialsXVocabXGroup.png",width=3,height=3,units="in",res=300)
 
-#### Means by subject ####
+## TD only: 
+ggplot(subset(wl.trialsfinished,ageGroup%in%c("18M","24M")), aes(x=ageV1Mos, y=Freq)) +
+  geom_point(size=1) + geom_smooth(method=lm, se=FALSE) +
+  theme_bw() + scale_color_manual(values=c("royalblue1","royalblue4","orangered")) +
+  labs(title="WL trials completed (TD)",y="# trials completed",x="Age (mos)") +
+  wswl.smallplots
+dev.print(png,file="Plots/WL/WL_TD_TrialsXage_scatter.png", width=3,height=3, units="in",res=400)
 
-### familiar
-wl.familiar = subset(wl, Cond!="Practice"&TrialType=="familiar")
-wl.familiar.responded = droplevels(subset(wl.familiar, !(Response%in%c("na","nr"))))
-wl.familiar.bysubj.byitem = wl.acc(wl.familiar.responded, c("Item","Subj"))
-wl.familiar.bysubj = wl.acc(wl.familiar.bysubj.byitem,"Subj")
-wl.familiar.bysubj = merge(wl.familiar.bysubj,subjInfo)
+ggplot(subset(wl.trialsfinished,ageGroup%in%c("18M","24M")), aes(x=WordsProduced, y=Freq)) +
+  geom_point(size=1) + geom_smooth(method=lm, se=FALSE) +
+  theme_bw() + scale_color_manual(values=c("royalblue1","royalblue4","orangered")) +
+  labs(title="WL trials completed (TD)",y="# trials completed",x="Vocabulary size") +
+  wswl.smallplots
+dev.print(png,file="Plots/WL/WL_TD_TrialsXvocab_scatter.png", width=3,height=3, units="in",res=400)
 
+#### Accuracy: FAMILIAR ####
 ## by age group
 ggplot(wl.familiar.bysubj, aes(x = ageGroup, color=ageGroup, y=acc)) +
   geom_boxplot() + geom_point(size=1) + 
@@ -75,10 +80,44 @@ ggplot(wl.familiar.sumacc.bysubj, aes(x = ageGroup, color=ageGroup, y=sum_acc)) 
   wswl.smallplots
 dev.print(png, file="PilotResults/WL_SumAccFamiliarXGroup.png",width=700,height=600,res=200)
 
-#### novel ####
-wl.novel = subset(wl, Cond!="Practice"&TrialType=="novel")
-wl.novel.responded = droplevels(subset(wl.novel, !(Response%in%c("na","nr"))))
+#### Accuracy: NOVEL ####
+### TD ###
+## data frame with one row for each item, number of correct and total comprehension trials
+wl.items.good.td.novel = droplevels(subset(wl.items.good, TrialType=="novel"&ageGroup %in% c("18M","24M")))
+contrasts(wl.items.good.td.novel$Cond) = contr.helmert(3)
+summary(glm(cbind(correct, (trialsresponded-correct)) ~ Cond * WordsProduced, data=wl.items.good.td.novel, family="binomial"))
+summary(glm(cbind(correct, (trialsresponded-correct)) ~ Cond * ageV1Mos, data=wl.items.good.td.novel, family="binomial"))
+summary(glm(cbind(correct, (3-correct)) ~ Cond * WordsProduced, data=wl.items.good.td.novel, family="binomial"))
+summary(glm(cbind(correct, (3-correct)) ~ Cond * ageV1Mos, data=wl.items.good.td.novel, family="binomial"))
 
+## first comprehension trial only
+wl.good.td = droplevels(subset(wl, TrialType=="novel" & ageGroup%in%c("18M","24M") & !(Subj%in%wl.badsubj$Subj)))
+wl.good.td.first = subset(wl.good.td, CompTrial==1)
+contrasts(wl.good.td.first$Cond) <- contr.helmert(3)
+summary(glmer(acc ~ Cond* ageV1Mos + (1|Subj), data=wl.good.td.first, family=binomial))
+
+## accuracy by subject and item:
+wl.good.exp.bysubj.td = ddply(droplevels(subset(wl.items.good.td.novel, Cond!="Practice")), .(Subj,Cond), .drop=F,
+                           summarize, acc.grand = (sum(correct,na.rm=T)/sum(trialsresponded,na.rm=T)), acc.strict = (sum(correct)/6),
+                           acc.byitem = mean(correct/trialsresponded), acc.byitem.strict = mean(correct/3), 
+                           totalCorrect = sum(correct), totalResponded = sum(trialsresponded))
+wl.good.exp.means.td = ddply(wl.good.exp.bysubj.td, .(Cond), 
+                             summarize, acc.bysubj = mean(acc.grand), acc.byitem.bysubj = mean(acc.byitem), 
+                             acc.strict.bysubj = mean(acc.strict), acc.byitem.strict.bysubj = mean(acc.byitem.strict))
+
+wl.good.exp.bysubj.td = merge(wl.good.exp.bysubj.td,subjInfo,all.x=T)
+wl.good.exp.bysubj.td$VocabSplitTDWL = ifelse(wl.good.exp.bysubj.td$WordsProduced < median(wl.good.exp.bysubj.td$WordsProduced), "low","high")
+
+wl.good.exp.means.td.vocabgroups = ddply(wl.good.exp.bysubj.td, .(Cond,VocabSplitTDWL), 
+                                         summarize, acc.bysubj = mean(acc.grand), acc.byitem.bysubj = mean(acc.byitem), 
+                                         acc.strict.bysubj = mean(acc.strict), acc.byitem.strict.bysubj = mean(acc.byitem.strict))
+
+wl.td.means.chance = ddply(wl.good.exp.bysubj.td, .(Cond, VocabSplitTDWL), summarize, correct = sum(totalCorrect), responded = sum(totalResponded), 
+                           p = binom.test(correct, responded)$p.value)
+
+save(wl.good.exp.bysubj.td, wl.good.exp.means.td, wl.good.exp.means.td.vocabgroups, file = "wl-TD-means.Rda")
+
+colnames(binom.test(3,5))
 ### all trials, by subject, overall
 wl.alltrials.bysubj.byitem = wl.acc(wl.novel.responded, c("Item","Subj"))
 wl.alltrials.bysubj = wl.acc(wl.alltrials.bysubj.byitem, "Subj")
@@ -128,12 +167,43 @@ wl.alltrials.bycond.bysubj = wl.acc(wl.acc(wl.novel.responded, c("Item","Subj","
 wl.alltrials.bycond.bysubj = merge(wl.alltrials.bycond.bysubj, subjInfo)
 wl.alltrials.bycond.bysubj$Cond = ordered(wl.alltrials.bycond.bysubj$Cond, 
                                           levels=c("FollowIn","Joint","Discrepant"), labels=c("FollowIn","JointAttn","Discrepant"))
-wl.alltrials.bycond.bysubj$VocabGroup = ordered(wl.alltrials.bycond.bysubj$VocabGroup,levels=c("low","high"))
+#wl.alltrials.bycond.bysubj$VocabGroup = ordered(wl.alltrials.bycond.bysubj$VocabGroup,levels=c("low","high"))
 
-wl.td = subset(wl.alltrials.bycond.bysubj, Group=="TD"&Subj!="TD11")
+wl.td = subset(wl.alltrials.bycond.bysubj, ageGroup %in% c("18M", "24M")&!(Subj %in% levels(wl.familiar.lowacc$Subj)))
 wl.td.avg = ddply(wl.td, .(Cond,VocabGroupTD), function(df){mean(df$acc)})
 wl.td.rawnums = ddply(droplevels(subset(wl.novel, Group=="TD"&Subj!="TD11"&!(Response%in%c("na","nr")))), .(Cond, VocabGroupTD), cbind(correct=function(df){sum(df$acc)}, nrow))
 wl.td.rawnums$binom = binom.test(wl.td.rawnums$V1, wl.td.rawnums$V2, p=0.5)
+
+## td only, by vocab
+ggplot(wl.td, aes(x=WordsProduced, y=acc)) + 
+  geom_point() + facet_wrap(~Cond) + geom_smooth(method=lm, se=F) + 
+  theme_bw() + 
+  labs(title="Accuracy on novel words",y="Proportion correct",x="Vocabulary") +
+  wswl.smallplots
+dev.print(png, file="Plots/WL/WL_TDgood_NovelAccXVocab_scatter.png", width=4, height=3, units="in", res=400)
+
+wl.good.exp.bysubj.td$Cond = ordered(wl.good.exp.bysubj.td$Cond, levels=c("FollowIn","Joint","Discrepant"), labels = c("FollowIn","Shared attn","Discrepant"))
+ggplot(wl.good.exp.bysubj.td, aes(x=WordsProduced, y=acc.byitem)) + 
+  geom_point() + facet_wrap(~Cond) + geom_smooth(method=lm, se=F) + 
+  theme_bw() + 
+  labs(title="Accuracy on novel words",y="Proportion correct (avg. by item)",x="Vocabulary") +
+  wswl.posterplots
+dev.print(png, file="Plots/WL/WL_TDgood_NovelAccbyItemXVocab_scatter.png", width=4, height=3, units="in", res=100)
+
+ggplot(wl.good.exp.bysubj.td, aes(x=ageV1Mos, y=acc.byitem.strict)) + 
+  geom_point() + facet_wrap(~Cond) + geom_smooth(method=lm, se=F) + 
+  theme_bw() + 
+  labs(title="Accuracy on novel words",y="Proportion correct (avg. by item)",x="Vocabulary") +
+  wswl.posterplots
+
+## td only, by age
+ggplot(wl.td, aes(x=ageV1Mos, y=acc)) + 
+  geom_point() + facet_wrap(~Cond) + geom_smooth(method=lm, se=F) + 
+  theme_bw() + 
+  labs(title="Accuracy on novel words",y="Proportion correct",x="Age (mos)") +
+  wswl.smallplots
+dev.print(png, file="Plots/WL/WL_TDgood_NovelAccXAge_scatter.png", width=4, height=3, units="in", res=400)
+
 
 ## age groups
 dodge <-position_dodge(width=.8)
@@ -143,6 +213,8 @@ ggplot(wl.alltrials.bycond.bysubj, aes(x = Cond, color=ageGroup, y=acc)) +
   labs(title="Accuracy on novel words",y="Proportion correct",x="Condition",color="Group") +
   wswl.smallplots
 dev.print(png,file="PilotResults/WL_AccNovelCondsXGroup.png", width=800,height=600,res=200)
+
+
 
 ## by vocab group
 ggplot(wl.alltrials.bycond.bysubj, aes(x = Cond, color=VocabGroup, y=acc)) +

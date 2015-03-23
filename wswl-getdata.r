@@ -3,10 +3,9 @@
 
 #### Import data ####
 # data directory and file names
-setwd("/Volumes/Landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results")
-#setwd("/Users/Shevaun/Desktop/Results")
+setwd("/Volumes/landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results/DataSpreadsheets")
 subjInfoFile = "SubjInfo.csv"
-parentLabelCodesFile = "ParentLabelCodes.csv"
+parentLabelCodesFile = "ParentLabelCodes_wordcounts.csv"
 mullenFile = "Mullen-raw.csv"
 cdiFile = "CDI-raw.csv"
 wordLearningFile = "WordLearning-paperCodes.csv"
@@ -31,6 +30,9 @@ subjInfo$dob = as.Date(as.character(subjInfo$dob), "%m/%d/%y")
 subjInfo$WL_date = as.Date(as.character(subjInfo$WL_date), "%m/%d/%y")
 subjInfo$PF_date = as.Date(as.character(subjInfo$PF_date), "%m/%d/%y")
 subjInfo$PL_date = as.Date(as.character(subjInfo$PL_date), "%m/%d/%y")
+subjInfo$CDI_date = as.Date(as.character(subjInfo$CDI_date), "%m/%d/%y")
+subjInfo$Mullen_date = as.Date(as.character(subjInfo$Mullen_date), "%m/%d/%y")
+
 
 # Calculate age, add age groups
 subjInfo$ageV1Mos = round(as.integer(subjInfo$date1 - subjInfo$dob)/365*12, digits=1)
@@ -39,73 +41,142 @@ subjInfo$ageGroup = as.factor(ifelse(grepl("Pilot",subjInfo$Group),as.character(
                                      ifelse(subjInfo$Group=="TD", ifelse(subjInfo$ageV1Mos<21, "18M", 
                                                                          ifelse(subjInfo$ageV1Mos>27,"30M","24M")),"WS")))
 
-# remove unnecessary columns
-subjInfo = subjInfo[,c(1,4:12,15:16)]
-subjInfoBasic = subjInfo
+# make data frame with just basic subject info, no dates
+subjInfoBasic = subjInfo[,c("Subj","Sex","Group","ageV1Mos","ageGroup")]
+subjInfoAll = subjInfo
 
 #### CDI ####
 
-# Fix dates
-cdi$Date = as.Date(as.character(cdi$Date), "%m/%d/%y")
-
 # add WordsProduced to subject info
-subjInfo = merge(subjInfo, cdi[,c("SubjID","WordsProduced")], all.x=T)
+vocab = merge(subjInfo, cdi[,c("Subj","WordsProduced")], all.x=T)
+vocab = vocab[,c("Subj","Group","ageGroup","WordsProduced")]
 
-# median vocabulary
-subjInfo$VocabGroup = ifelse(subjInfo$WordsProduced < median(subjInfo$WordsProduced[!(subjInfo$Group%in%c("Pilot-TD","Pilot-WS"))], na.rm=T), "low","high")
-subjInfo$VocabGroupTD = ifelse(subjInfo$WordsProduced < median(subjInfo$WordsProduced[subjInfo$Group=="TD"], na.rm=T), 
-                               "low","high")
-# make column for high/low vocab for WS kids
-subjInfo$VocabGroupWS = ifelse(subjInfo$WordsProduced < median(subjInfo$WordsProduced[subjInfo$Group=="WS"], na.rm=T), "low", "high")
+# median vocabulary for different subsets
+vocab$VocabSplitAll = with(vocab, ifelse(WordsProduced < median(WordsProduced[!(Group%in%c("Pilot-TD","Pilot-WS"))], na.rm=T), "low","high"))
+vocab$VocabSplitTD = with(vocab, ifelse(WordsProduced < median(WordsProduced[Group=="TD"], na.rm=T), "low","high"))
+vocab$VocabSplitWS = with(vocab, ifelse(WordsProduced < median(WordsProduced[Group=="WS"], na.rm=T), "low", "high"))
 
 # make column that specifies high/low vocab relative to the age group (TD18, TD24, WS) of the subject
-subjInfo$VocabByGroup = with(subjInfo, ifelse(ageGroup=="18M",
+vocab$VocabSplitByGroup = with(vocab, ifelse(ageGroup=="18M",
                                               ifelse(WordsProduced < median(WordsProduced[ageGroup=="18M"], na.rm=T), "low", "high"),
                                               ifelse(ageGroup=="24M",
-                                                     ifelse(WordsProduced <= median(WordsProduced[ageGroup=="24M"], na.rm=T), "low", "high"),
-                                                     VocabGroupWS)))
+                                                     ifelse(WordsProduced < median(WordsProduced[ageGroup=="24M"], na.rm=T), "low", "high"),
+                                                     VocabSplitWS)))
 #### Mullen ####
+colnames(mullen) <- c("Subj","mullenGM","mullenVR","mullenFM","mullenRL","mullenEL")
 
-# add raw scores to subject info
-mullen$Mullen_date = as.Date(as.character(mullen$Mullen_date), "%m/%d/%y")
-colnames(mullen) <- c("SubjID","Date","mullenGM","mullenVR","mullenFM","mullenRL","mullenEL")
-subjInfo = merge(subjInfo, mullen, all.x=T)
+## add CDI and Mullen scores to subject info
+subjInfo = merge(subjInfoBasic, mullen, all.x=T)
+subjInfo = merge(subjInfo, vocab, all.x=T)
 
 #### Parent labels ####
 
 # Make a new data frame to store just one set of codes per label
-parentLabels = parentLabelCodes
+pl = parentLabelCodes
 # Add new columns for the codes to use for analysis. Use final, coder2, or coder1 codes in 
 # that order of preference.
-attach(parentLabels)
-parentLabels$transcript = ifelse(transcript2=="", transcript1, ifelse(transcriptF=="", transcript2, transcriptF))
-parentLabels$object = ifelse(object2=="", object1, ifelse(objectF=="", object2, objectF))
-parentLabels$numObjs = ifelse(numObjs2=="", numObjs1, ifelse(numObjsF=="", numObjs2, numObjsF))
-parentLabels$uttType = ifelse(uttType2=="", uttType1, ifelse(uttTypeF=="", uttType2, uttTypeF))
-parentLabels$category = ifelse(category2=="", category1, ifelse(categoryF=="", category2, categoryF))
-parentLabels$code = ifelse(transcript2=="", 1, ifelse(transcriptF=="", 2, 3))
-detach(parentLabels)
+attach(pl)
+pl$transcript = ifelse(transcript2=="", transcript1, ifelse(transcriptF=="", transcript2, transcriptF))
+pl$object = ifelse(object2=="", object1, ifelse(objectF=="", object2, objectF))
+pl$numObjs = ifelse(numObjs2=="", numObjs1, ifelse(numObjsF=="", numObjs2, numObjsF))
+pl$uttType = ifelse(uttType2=="", uttType1, ifelse(uttTypeF=="", uttType2, uttTypeF))
+pl$category = ifelse(category2=="", category1, ifelse(categoryF=="", category2, categoryF))
+pl$code = ifelse(transcript2=="", 1, ifelse(transcriptF=="", 2, 3))
+detach(pl)
 
-parentLabels = parentLabels[,c(1:6,22:27)]
+pl = pl[,c(1:6,22:28)]
 
-# add subject info
-parentLabels = droplevels(merge(subjInfo, parentLabels, all.y=T))
-parentLabels$VocabGroupTD = ordered(parentLabels$VocabGroupTD, levels=c("low","high"))
+## data frames for looking at utterance types, categories
+pl$Subj = as.factor(pl$Subj)
+pl.uttTypes.bySubj = ddply(pl, .(Subj,uttType), nrow, .drop=F)
+colnames(pl.uttTypes.bySubj)[3] <- "typeTotal"
+pl.totalUtts.bySubj = ddply(pl, .(Subj), nrow)
+colnames(pl.totalUtts.bySubj)[2] <- "totalUtts"
+pl.uttTypes.bySubj = merge(pl.uttTypes.bySubj, pl.totalUtts.bySubj)
+
+pl.category.bySubj = ddply(droplevels(subset(pl,category!="unseen")), .(Subj,category), nrow, .drop=F)
+colnames(pl.category.bySubj)[3] <- "catTotal"
+pl.totalSeen.bySubj = ddply(droplevels(subset(pl,category!="unseen")), .(Subj), nrow)
+colnames(pl.totalSeen.bySubj)[2] <- "totalSeen"
+pl.category.bySubj = merge(pl.category.bySubj, pl.totalSeen.bySubj)
+pl.category.bySubj = merge(pl.category.bySubj, subjInfo, all.x=T)
+
+pl.category.bySubj.wide = reshape(pl.category.bySubj[,1:4], timevar="category",idvar=c("Subj","totalSeen"),direction="wide")
+colnames(pl.category.bySubj.wide)[3:5] <- c("totalDiscrepant","totalFollowin","totalSharedAttn")
+
+#add total seen utterances to pl.totalUtts.bySubj
+pl.totalUtts.bySubj = merge(pl.totalUtts.bySubj, pl.totalSeen.bySubj, all.x=T)
+pl.totalUtts.bySubj$propSeen = pl.totalUtts.bySubj$totalSeen/pl.totalUtts.bySubj$totalUtts
+pl.totalUtts.bySubj = merge(pl.totalUtts.bySubj,subjInfo,all.x=T)
+
+#count words in target utterances by subject
+pl$wordcount_transcriptionfinal = as.numeric(pl$wordcount_transcriptionfinal)
+pl.wordcount.bysubj = ddply(pl, .(Subj), summarise, mlu=mean(wordcount_transcriptionfinal), totalWords=sum(wordcount_transcriptionfinal))
+
+pl.bySubj = ddply(pl, .(Subj,uttType,category),nrow, .drop=F)
+colnames(pl.bySubj)[4] <- "num"
+pl.bySubj = merge(pl.bySubj, pl.category.bySubj)
+pl.bySubj = merge(pl.bySubj, pl.uttTypes.bySubj)
+pl.bySubj = merge(pl.bySubj, pl.wordcount.bysubj)
+
 
 #### Word Learning ####
 wl$Target = as.character(wl$Target)
 wl$Response = as.character(wl$Response)
+wl$acc = ifelse(wl$Response==wl$Target,1,0)
+
+# Comprehension trial types
+comptrials = data.frame(CompTrial=c(1,2,3,4,5), TrialType=c("novel","familiar","novel","familiar","novel"))
+wl = merge(wl,comptrials,all.x=T)
+wl$TrialType = as.factor(ifelse(wl$Cond=="Practice","familiar",as.character(wl$TrialType)))
+wl$TrialType = as.factor(wl$TrialType)
+
+wl = merge(subjInfo,wl,all=T)
+wl = droplevels(subset(wl, Group %in% c("TD","WS")))
+
+wl.response = subset(wl,!(Response%in%c("na","nr","nc")))
+
+#### acc by subject AND item
+wl.item.responded = ddply(wl.response, .(Subj,Item,Cond,TrialType,Target), nrow)
+colnames(wl.item.responded)[6] ="trialsresponded"
+wl.item.acc = ddply(wl, .(Subj,Item,Cond,TrialType,Target), summarise, correct=sum(acc))
+wl.items = merge(wl.item.acc, wl.item.responded)
+wl.items = merge(wl.items,subjInfo,all.x=T)
+
+#### How many comprehension trials did each subject finish? ####
+wl.trialsfinished = as.data.frame(xtabs(~Subj, data=wl.response))
+colnames(wl.trialsfinished)[2] = "totalCompTrials"
+wl.lowtrials = subset(wl.trialsfinished, totalCompTrials<10)
+
+wl.familiar.bysubj = ddply(droplevels(subset(wl.items, TrialType=="familiar")), .(Subj),
+                           summarise, acc.grand = (sum(correct)/sum(trialsresponded)), acc.byitem = mean(correct/trialsresponded),
+                           totalCorrect = sum(correct), totalResponded = sum(trialsresponded))
+  
+wl.lowacc = subset(wl.familiar.bysubj, acc.byitem<0.65)
+wl.badsubj = merge(wl.lowtrials, wl.lowacc,all=T)
+
+wl.items.good = droplevels(subset(wl.items, !(Subj %in% wl.badsubj$Subj)))
+
+# wl.novel.bysubj = ddply(wl.novel.responded, .(Subj, Cond, acc), .drop=F, nrow)
+# colnames(wl.novel.bysubj)[4] = "num"
+# wl.novel.bysubj = reshape(wl.novel.bysubj, timevar="acc", idvar=c("Subj","Cond"),direction="wide")
+# colnames(wl.novel.bysubj)[3:4] = c("numIncorrect","numCorrect")
+# wl.novel.bysubj.wide = reshape(wl.novel.bysubj, timevar="Cond",idvar="Subj", direction="wide")
+# colnames(wl.novel.bysubj.wide)[2:7] <- c("discrepantIncorrect","discrepantCorrect","followinIncorrect","followinCorrect","jointIncorrect","jointCorrect")
+# wl.novel.bysubj = merge(wl.novel.bysubj, subjInfo, all.x=T)
+# wl.novel.bysubj.wide = merge(wl.novel.bysubj.wide, subjInfo, all.x=T)
+
 
 #### Point Following ####
-pf = merge(pf, subjInfo, all.x=TRUE)
+pf = merge(pf, subjInfoAll[,c("Subj","PF_date","PF_list","PF_Order")], all.x=TRUE)
 
 ## If final code is not yet available, use code2
 pf$lookF = ifelse(pf$lookF=="",as.character(pf$look2),as.character(pf$lookF))
 pf$directionF = ifelse(pf$directionF=="",as.character(pf$direction2),as.character(pf$directionF))
 pf$distanceF = ifelse(pf$distanceF=="",as.character(pf$distance2),as.character(pf$distanceF))
 
-## Fix column names for easier merge:
-colnames(pf)[24] <- "List"
+## Fix column names:
+colnames(pf)[19] <- "List"
 colnames(pf)[17] <- "Distance"
 
 ## make single column for point direction, incorporating repeat codes (no longer necessary since directionF is available)
@@ -139,9 +210,9 @@ pfSetTrials = function(df) {
 pfSetAllTrials = function(df) {
   df$Trial = 0
   dfout = 0
-  for (subj in levels(df$SubjID)) {
-    near = subset(df,SubjID==subj&Distance=="Near")
-    far = subset(df,SubjID==subj&Distance=="Far")
+  for (subj in levels(df$Subj)) {
+    near = subset(df,Subj==subj&Distance=="Near")
+    far = subset(df,Subj==subj&Distance=="Far")
     near1 = pfSetTrials(near)
     far1 = pfSetTrials(far)
     if (is.data.frame(dfout)) {
@@ -153,24 +224,45 @@ pfSetAllTrials = function(df) {
   }
   dfout$PositionRel = ifelse(grepl("Left",dfout$directionF),"left","right")
   dfout = merge(dfout,pfTrials,all.x=TRUE)
-  dfout = dfout[order(dfout$SubjID),]
+  dfout = dfout[order(dfout$Subj),]
   return(dfout)
 }
 
 pf = pfSetAllTrials(pf)
 pf$Separation = as.factor(pf$Separation)
 
-pf_full = pf
-pf = pf[,c("SubjID","dob","Sex","Group","ageV1Mos","ageGroup","WordsProduced","VocabGroup","VocabGroupTD","VocabGroupWS","VocabByGroup",
-           "PF_date","List","PF_Order","tagger","coder1","coder2",
-           "tagnote","pointNum","attempt","Trial","Distance","PositionRel","Separation","Position","Animacy","Set",
-           "windowOnset","windowOffset","directionF","lookF")]
-
-pf$look = ordered(pf$lookF, levels=c("Imm","Delay","NoTarget","NoEyeContact"), labels=c("Imm","Delay","NoTarget","NoEyeContact"))
+pfFull = pf
+pf = pf[,c("Subj","List","PF_Order","tagger","coder1","coder2","tagnote",
+           "pointNum","attempt","Trial","Distance","PositionRel","Separation","Position","Animacy","Set",
+           "directionF","lookF")]
 pf = droplevels(subset(pf,lookF!="DISCUSS"))
+#pf$look = ordered(pf$lookF, levels=c("Imm","Delay","NoTarget","NoEyeContact"), labels=c("Imm","Delay","NoTarget","NoEyeContact"))
+pf = merge(pf, subjInfo, all.x=T)
 pf.good = droplevels(subset(pf,lookF!="NoEyeContact"&attempt=="only"))
 
+## Count of label types by subject
+pf.lookcounts.bysubj = ddply(subset(pf,attempt!="rep"), .(Subj,lookF), nrow, .drop=F)
+colnames(pf.lookcounts.bysubj)[3] <- "num"
+
+pf.bysubj.totalTrials = ddply(pf.lookcounts.bysubj, .(Subj), summarise, totalTrials=sum(num))
+pf.bysubj.totalLooks = ddply(subset(pf.lookcounts.bysubj, lookF %in% c("Imm","Delay")), .(Subj), summarise, totalLooks=sum(num))
+pf.bysubj.totalGoodTrials = ddply(subset(pf.lookcounts.bysubj, lookF!="NoEyeContact"), .(Subj), summarise, totalGoodTrials=sum(num))
+
+pf.lookcounts.bysubj = merge(pf.lookcounts.bysubj, pf.bysubj.totalTrials)
+pf.lookcounts.bysubj = merge(pf.lookcounts.bysubj, pf.bysubj.totalLooks)
+pf.lookcounts.bysubj = merge(pf.lookcounts.bysubj, pf.bysubj.totalGoodTrials)
+
+pf.lookcounts.bysubj.wide = reshape(pf.lookcounts.bysubj, idvar=c("Subj","totalTrials","totalLooks","totalGoodTrials"),timevar="lookF", direction="wide")
+
+pf.lookcounts.bysubj = merge(pf.lookcounts.bysubj, subjInfo, all.x=T)
+pf.lookcounts.bysubj.wide = merge(pf.lookcounts.bysubj.wide, subjInfo, all.x=T)
+
 #### Save data, clear environment ####
-save(subjInfo, subjInfoBasic, parentLabelCodes, parentLabels, wl, pf, pfTrials, pf_full, pf.good, file="wswl-data.Rda")
-write.csv(subjInfo,file="subjInfoDetails.csv",row.names=FALSE)
+setwd("../ROutput")
+save(subjInfo, subjInfoBasic, subjInfoAll, file="wswl-subjInfo.Rda")
+save(parentLabelCodes, pl, pl.uttTypes.bySubj, pl.totalUtts.bySubj, pl.category.bySubj, pl.category.bySubj.wide, pl.bySubj, file="wswl-pl.Rda")
+save(pf, pfFull, pf.good, pf.lookcounts.bysubj,pf.lookcounts.bysubj.wide, file="wswl-pf.Rda")
+save(wl, wl.badsubj, wl.familiar.bysubj,wl.item.acc, wl.item.responded, wl.items, wl.items.good, wl.response, wl.trialsfinished, file="wswl-wl.Rda")
+write.csv(subjInfo,file="subjDemographics.csv",row.names=FALSE)
 rm(list=ls())
+setwd("..")
