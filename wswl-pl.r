@@ -4,7 +4,7 @@
 
 setwd("/Volumes/Landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results/")
 #setwd("~/Google Drive/WS-SocialWordLearning/Results")
-source("WSWL-Analysis/wswl-getdata.r")
+source("WSWL-Analysis/wswl-getPL.r")
 source("WSWL-Analysis/wswl-functions.r")
 
 load("ROutput/wswl-pl.Rda")
@@ -12,45 +12,47 @@ load("ROutput/wswl-subjInfo.Rda")
 
 
 #### Reliability ####
-with(parentLabelCodes,mean(as.numeric(uttType1==uttType2))) ## 91.6%
-with(parentLabelCodes,mean(as.numeric(category1==category2))) ## 83.9%
+with(parentLabelCodes,mean(as.numeric(uttType1==uttType2))) ## 92.7%
+with(parentLabelCodes,mean(as.numeric(category1==category2))) ## 84.3%
 
 #### overall means ####
-pl.category.means = ddply(pl.category.bySubj, .(category), .drop=F, summarize, propOfSeen = mean(catTotal/totalSeen))
 pl.cat.plot = pl.category.bySubj
 pl.cat.plot$category = ordered(pl.cat.plot$category, levels=c("followin","sharedattn","discrepant"),labels = c("follow-in","shared attn","discrepant"))
 
-## proportions of each category
-ggplot(pl.cat.plot, aes(x=category,y=(catTotal/totalSeen))) + 
-  geom_boxplot() + theme_bw() +
-  labs(title="Parent utterances about target objects",y="Proportion of utterances",x="Vocabulary")+
-  wswl.posterplots
-
-# td only
+#### td 18-24m only ####
+## proportion in each category
 ggplot(subset(pl.cat.plot, ageGroup%in%c("18M","24M")), aes(x=category,y=(catTotal/totalSeen))) + 
   geom_boxplot() + theme_bw() +
   labs(title="Parent labels",y="Proportion of labels",x="Attention scenario")+
   wswl.posterplots
 dev.print(png,file="Plots/PL/PL_TD_propCategories_boxplot.png",width=3.25, height=4, units="in",res=200)
 
-## number of each category
-ggplot(pl.cat.plot, aes(x=category,y=catTotal)) + 
-  geom_boxplot() + theme_bw() +
-  labs(title="Parent utterances about target objects",y="Number of utterances",x="Vocabulary")+
-  wswl.posterplots
-
-# td only
+## number in each category
 ggplot(subset(pl.cat.plot, ageGroup%in%c("18M","24M")), aes(x=category,y=catTotal)) + 
   geom_boxplot() + theme_bw() +
   labs(title="Parent utterances about target objects",y="Number of utterances",x="Vocabulary") +
   wswl.posterplots
 
+#### All TD & WS ####
+## proportion in each category, by group
+ggplot(pl.cat.plot, aes(x=Group,color=Group,y=(catTotal/totalSeen))) + 
+  geom_boxplot() + facet_wrap(~category) + theme_bw() +
+  labs(title="Parent labels",y="Proportion of labels",x="Attention scenario")+
+  wswl.posterplots
+dev.print(png,file="Plots/PL/PL_groups_propCategories_boxplot.png",width=5, height=3.5, units="in",res=200)
+
 ##number of utterances
 summary(pl.totalUtts.bySubj$totalUtts)
 
+ggplot(pl.totalUtts.bySubj, aes(x=Group, color=Group,y=totalUtts)) + 
+  geom_boxplot() + theme_bw() + 
+  labs(title="Parent utterances \nabout target objects",y="Number of utterances",x="Group") +
+  wswl.posterplots
+dev.print(png, file="Plots/PL/PL_groups_totalUtts_boxplot.png",width=3.5, height=3.5, units="in",res=200)
+
 #### Stats ####
-# Number of utterances: do parents of children with larger vocabularies talk more?
-# just td:
+### Number of utterances: do parents of children with larger vocabularies talk more? 
+## just td 18-24m:
 pl.numUtts.lm = lm(totalUtts ~ ageV1Mos + WordsProduced + Sex, data=droplevels(subset(pl.bySubj, ageGroup %in% c("18M","24M"))))
 anova(pl.numUtts.lm)
 

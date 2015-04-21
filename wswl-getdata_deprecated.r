@@ -1,6 +1,8 @@
 ##### Social Word Learning Analysis
 ##### Created 7/24/2014
 
+library(plyr)
+
 #### Import data ####
 # data directory and file names
 setwd("/Volumes/landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results/DataSpreadsheets")
@@ -9,7 +11,7 @@ parentLabelCodesFile = "ParentLabelCodes_wordcounts.csv"
 mullenFile = "Mullen-raw.csv"
 cdiFile = "CDI-raw.csv"
 wordLearningFile = "WordLearning-paperCodes.csv"
-pfFile = "PFcodes.csv"
+pfFile = "PFcodes_4-20.csv"
 pfTrialsFile = "PF_Design.csv"
 
 ## Import data from .csv files
@@ -110,8 +112,8 @@ pl.totalUtts.bySubj$propSeen = pl.totalUtts.bySubj$totalSeen/pl.totalUtts.bySubj
 pl.totalUtts.bySubj = merge(pl.totalUtts.bySubj,subjInfo,all.x=T)
 
 #count words in target utterances by subject
-pl$wordcount_transcriptionfinal = as.numeric(pl$wordcount_transcriptionfinal)
-pl.wordcount.bysubj = ddply(pl, .(Subj), summarise, mlu=mean(wordcount_transcriptionfinal), totalWords=sum(wordcount_transcriptionfinal))
+pl$wordcount_transcriptF = as.numeric(pl$wordcount_transcriptF)
+pl.wordcount.bysubj = ddply(pl, .(Subj), summarise, mlu=mean(wordcount_transcriptF), totalWords=sum(wordcount_transcriptF))
 
 pl.bySubj = ddply(pl, .(Subj,uttType,category),nrow, .drop=F)
 colnames(pl.bySubj)[4] <- "num"
