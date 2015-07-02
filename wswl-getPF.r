@@ -8,7 +8,7 @@ setwd("/Volumes/landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results")
 load("ROutput/wswl-subjInfo.Rda")
 
 #### Import data ####
-pfFile = "DataSpreadsheets/PFcodes_fixed.csv"
+pfFile = "DataSpreadsheets/PFcodes.csv"
 pfTrialsFile = "DataSpreadsheets/PF_Design.csv"
 
 pf = read.csv(pfFile, header=T)
@@ -18,8 +18,8 @@ pfTrials = read.csv(pfTrialsFile, header=T)
 #### Point Following ####
 pf = merge(pf, subjInfoAll[,c("Subj","PF_date","PF_list","PF_Order")], all.x=TRUE)
 
-# remove TD18 until complete (4/20/15)
-pf = droplevels(subset(pf,Subj!="TD18"))
+# remove TD26, WS236 until complete (7/2/15)
+pf = droplevels(subset(pf,!(Subj%in%c("TD26","WS236"))))
 
 ## If final code is not yet available, use code2
 pf$lookF = ifelse(pf$lookF=="",as.character(pf$look2),as.character(pf$lookF))
@@ -54,8 +54,7 @@ pfSetTrials = function(df) {
           df[rownum,"attempt"] = "rep"
         }
       }
-    }    
-    if (dir=="RightRep") {
+    } else if (dir=="RightRep") {
       r = rownum  #set current row
       while (df[rownum,"Trial"]==0) {
         r = r-1   #go up one row
@@ -65,8 +64,7 @@ pfSetTrials = function(df) {
           df[rownum,"attempt"] = "rep"
         }
       }
-    }   
-    else { #if this isn't a repetition trial, assign the current trial number and then increment trialcount
+    } else { #if this isn't a repetition trial, assign the current trial number and then increment trialcount
       df[rownum,"Trial"] <- trials[trialcount,"Trial"]
       trialcount = trialcount + 1
     }

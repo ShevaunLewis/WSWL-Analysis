@@ -7,8 +7,8 @@
 # data directory and file names
 setwd("/Volumes/landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results/DataSpreadsheets")
 subjInfoFile = "SubjInfo.csv"
-mullenFile = "Mullen-raw.csv"
-cdiFile = "CDI-raw.csv"
+mullenFile = "Mullen-raw1.csv"
+cdiFile = "CDI-raw_new.csv"
 
 ## Import data from .csv files
 subjInfo = read.csv(subjInfoFile, header=T)

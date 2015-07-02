@@ -23,6 +23,7 @@ colnames(pf.lookcounts.bysubj)[2] <- "lookType"
 
 
 ##### Stats #####
+
 ### td 18-24m ###
 pf.stat.td = droplevels(subset(pf.lookcounts.bysubj.wide, ageGroup %in% c("18M", "24M")))
 anova(lm(totalGoodTrials ~ ageV1Mos * WordsProduced, data=pf.stat.td))
@@ -48,6 +49,12 @@ pf.td.ld.looks.glm = glm(cbind(looked,notLooked) ~ WordsProduced * ageV1Mos * Se
                       data=droplevels(subset(pf.conds, ageGroup %in% c("18M","24M") & Distance == "far")), family="binomial")
 
 ### everybody ###
+pf$Distance = as.factor(pf.full$Distance)
+pf$PositionRel = as.factor(pf.full$PositionRel)
+pf.stat = droplevels(subset(pf,attempt!="rep"))
+
+###
+
 pf.lookcounts.bysubj.wide = droplevels(pf.lookcounts.bysubj.wide)
 contrasts(pf.lookcounts.bysubj.wide$Group) <- contr.helmert(2)
 
@@ -72,12 +79,34 @@ pf.looks.glm.near = glm(cbind(looked,notLooked) ~ Group * PositionRel, data=subs
 summary(pf.looks.glm.near)
 pf.conds.glm = glm(cbind(looked,notLooked) ~ Group * PositionRel * Distance, data=pf.conds, family="binomial")
 summary(pf.conds.glm)
-summary(glmer(cbind(looked,notLooked)~Group*ageV1Mos*mullenVR+(1|Subj),data=pf.conds,family="binomial"))
+summary(glmer(cbind(looked,notLooked)~Group+Distance+Separation+PositionRel+(1|Subj),data=pf.conds,family="binomial"))
+# 7/2/15: confirmed that glmer actually works the same with a logical output variable - don't have to use hits and misses.
 
-summary(lm(WordsProduced ~ Group * ageV1Mos, data=pf.lookcounts.bysubj.wide))
+library(Hmisc)
+
+pf.glmm=glmer(I(lookF%in%c("Imm","Delay"))~PositionRel*Distance+WordsProduced+(1+PositionRel*Distance|Subj),data=pf.stat,family="binomial")
+summary(pf.glmm)
+somers2(binomial()$linkinv(fitted(pf.glmm)),as.numeric(pf.stat$lookF%in%c("Imm","Delay")))
+
+pf.ld = droplevels(subset(pf.stat,Distance=="Far"))
+pf.ld.glmm = glmer(I(lookF%in%c("Imm","Delay"))~PositionRel*Separation+WordsProduced+(1+PositionRel*Separation|Subj),data=pf.ld,family="binomial")
+summary(pf.ld.glmm)
+somers2(binomial()$linkinv(fitted(pf.ld.glmm)),as.numeric(pf.ld$lookF%in%c("Imm","Delay")))
+
 
 library("languageR")
 collin.fnc(pf.lookcounts.bysubj.wide,c(5,12))
+
+### multinomial
+library(mlogit)
+
+pf.final = pf[,c(1:3,8:19,21:28)]
+pf.ld = droplevels(subset(pf.final, Distance=="Far"))
+pf.all.data = mlogit.data(pf.final, shape="wide", choice="lookF", id="Subj", chid.var="pointNum")
+pf.ld.data = mlogit.data(pf.ld, shape="wide", choice="lookF",id="Subj",chid.var="pointNum")
+pf.ld.ml = mlogit(lookF ~ 1|PositionRel + Group, pf.ld.data)
+
+
 ##### Summary plots #####
 ### td only
 ggplot(pf.lookcounts.bysubj.wide, aes(x=WordsProduced,y=totalGoodTrials)) + 
