@@ -51,17 +51,33 @@ pf.td.ld.looks.glm = glm(cbind(looked,notLooked) ~ WordsProduced * ageV1Mos * Se
 pf.lookcounts.bysubj.wide = droplevels(pf.lookcounts.bysubj.wide)
 contrasts(pf.lookcounts.bysubj.wide$Group) <- contr.helmert(2)
 
-anova(lm(totalGoodTrials ~ Group * WordsProduced, data=pf.lookcounts.bysubj.wide))
-anova(lm(totalLooks ~ Group * WordsProduced, data=pf.lookcounts.bysubj.wide))
-anova(lm(num.Imm ~ Group * WordsProduced, data=pf.lookcounts.bysubj.wide))
+summary(lm(totalGoodTrials ~ Group * WordsProduced, data=pf.lookcounts.bysubj.wide))
+summary(lm(totalLooks ~ Group + WordsProduced, data=pf.lookcounts.bysubj.wide))
+summary(lm(num.Imm ~ Group + WordsProduced, data=pf.lookcounts.bysubj.wide))
+summary(lm(num.Imm ~ Group + WordsProduced, data=subset(pf.lookcounts.bysubj.wide,WordsProduced<250)))
+summary(lm(totalLooks ~ Group + WordsProduced, data=subset(pf.lookcounts.bysubj.wide,WordsProduced<250)))
+summary(lm(num.Imm ~ Group * mullenVR , data=subset(pf.lookcounts.bysubj.wide,WordsProduced<250)))
 
-pf.looks.glm = glm(cbind(looked,notLooked) ~ WordsProduced * Group, data=pf.conds, family="binomial")
-summary(pf.looks.glm)
+summary(lm(totalGoodTrials ~ Group * ageV1Mos, data=pf.lookcounts.bysubj.wide))
+summary(lm(totalLooks ~ Group * ageV1Mos, data=pf.lookcounts.bysubj.wide))
+summary(lm(num.Imm ~ Group * ageV1Mos, data=pf.lookcounts.bysubj.wide))
+
+summary(lm(mullenEL ~ num.Imm*Group, data=subset(pf.lookcounts.bysubj.wide,WordsProduced<250)))
+
+summary(glm(cbind(totalLooks, totalTrials-totalLooks) ~ Group * ageV1Mos, data=pf.lookcounts.bysubj.wide,family="binomial"))
+
 pf.looks.glm.far = glm(cbind(looked,notLooked) ~ Group * PositionRel * Separation, data=subset(pf.conds,Distance=="Far"), family="binomial")
 summary(pf.looks.glm.far)
 pf.looks.glm.near = glm(cbind(looked,notLooked) ~ Group * PositionRel, data=subset(pf.conds,Distance=="Near"), family="binomial")
 summary(pf.looks.glm.near)
+pf.conds.glm = glm(cbind(looked,notLooked) ~ Group * PositionRel * Distance, data=pf.conds, family="binomial")
+summary(pf.conds.glm)
+summary(glmer(cbind(looked,notLooked)~Group*ageV1Mos*mullenVR+(1|Subj),data=pf.conds,family="binomial"))
 
+summary(lm(WordsProduced ~ Group * ageV1Mos, data=pf.lookcounts.bysubj.wide))
+
+library("languageR")
+collin.fnc(pf.lookcounts.bysubj.wide,c(5,12))
 ##### Summary plots #####
 ### td only
 ggplot(pf.lookcounts.bysubj.wide, aes(x=WordsProduced,y=totalGoodTrials)) + 
@@ -69,17 +85,6 @@ ggplot(pf.lookcounts.bysubj.wide, aes(x=WordsProduced,y=totalGoodTrials)) +
   theme_bw() + labs(title = "Trials with eye contact", y="Number of trials with eye contact", x="Vocabulary") + 
   wswl.smallplots
 dev.print(png, file="Plots/PF/PF_TD_GoodTrialsXVocab_scatter.png", width=3, height=3, units="in", res=300)
-
-## Successful trials by age and group
-ggplot(droplevels(subset(pf.lookcounts.bysubj, lookType=="NoEyeContact"&ageGroup %in% c("18M","24M","WS"))), aes(x=ageV1Mos,y=(totalTrials-num),color=Group,shape=Group)) + 
-  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,24) + scale_color_manual(values=c("royalblue1","orangered")) +
-  theme_bw() + labs(title = "Trials with eye contact", y="Number of trials with eye contact", x="Age (mos)") + 
-  wswl.smallplots
-dev.print(png, file="Results_1-29-15/PF_goodtrialsXVocab.png", width=3,height=3,units="in",res=300)
-
-#reverse axes
-ggplot(subset(pf.lookcounts.bysubj, lookType=="NoEyeContact"),aes(x=(totalTrials-num),y=WordsProduced,color=Group,shape=Group)) + 
-  geom_point() + geom_smooth(method=lm, se=F)
 
 ## Immediate looks (count)
 ggplot(pf.stat.td, aes(x=WordsProduced, y=num.Imm)) + 
@@ -109,6 +114,75 @@ ggplot(pf.stat.td, aes(x=ageV1Mos, y=totalLooks)) +
 dev.print(png, file="Plots/PF/PF_TD_AnyLooksXAge_scatter.png", width=3, height=3, units="in", res=300)
 
 ### all participants
+## Successful trials by age and group
+ggplot(pf.lookcounts.bysubj.wide, aes(x=ageV1Mos,y=totalGoodTrials,color=Group,shape=Group)) + 
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,20) +
+  theme_bw() + labs(title = "Trials with eye contact", y="# trials with eye contact", x="Age (mos)") + 
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF_goodtrialsXAgeXGroup.png", width=4,height=3,units="in",res=200)
+
+## Successful trials by vocab and group
+ggplot(pf.lookcounts.bysubj.wide, aes(x=WordsProduced,y=totalGoodTrials,color=Group,shape=Group)) + 
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,20) +
+  theme_bw() + labs(title = "Trials with eye contact", y="# trials with eye contact", x="Vocabulary size") + 
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF_goodtrialsXVocabXGroup.png", width=4,height=3,units="in",res=200)
+
+## Immediate looks by age and group
+ggplot(pf.lookcounts.bysubj.wide, aes(x=ageV1Mos,y=num.Imm,color=Group,shape=Group)) + 
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,20) +
+  theme_bw() + labs(title = "Immediate looks", y="# trials with immediate looks", x="Age (mos)") + 
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF_ImmXAgeXGroup.png", width=4,height=3,units="in",res=200)
+
+
+## Immediate looks by vocab and group
+ggplot(pf.lookcounts.bysubj.wide, aes(x=WordsProduced,y=num.Imm,color=Group,shape=Group)) + 
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,20) +
+  theme_bw() + labs(title = "Immediate looks", y="# trials with immediate looks", x="Vocabulary") + 
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF_ImmXVocabXGroup.png", width=4,height=3,units="in",res=200)
+
+ggplot(subset(pf.lookcounts.bysubj.wide,WordsProduced<250), aes(x=num.Imm,y=WordsProduced,color=Group,shape=Group)) + 
+  geom_point() + geom_smooth(method=lm,se=FALSE) +
+  theme_bw() + labs(title = "Vocabulary and point following", y="Vocabulary", x = "# immediate looks") + 
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF_vocab<250_VocabXImmXGroup.png", width=4,height=3,units="in",res=200)
+
+#Immediate looks by vocab and group, for vocab < 250
+ggplot(subset(pf.lookcounts.bysubj.wide,WordsProduced<250), aes(x=WordsProduced,y=num.Imm,color=Group,shape=Group)) + 
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,20) +
+  theme_bw() + labs(title = "Immediate looks", y="# trials with immediate looks", x="Vocabulary") + 
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF_vocab<250_ImmXVocabXGroup.png", width=4,height=3,units="in",res=200)
+
+## Any looks by age and group
+ggplot(pf.lookcounts.bysubj.wide, aes(x=ageV1Mos,y=totalLooks,color=Group,shape=Group)) + 
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,20) +
+  theme_bw() + labs(title = "Total looks (imm. or delayed)", y="#trials with look to target", x="Age (mos)") + 
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF_TotalLooksXAgeXGroup.png", width=4,height=3,units="in",res=200)
+
+## Any looks by vocab and group
+ggplot(pf.lookcounts.bysubj.wide, aes(x=WordsProduced,y=totalLooks,color=Group,shape=Group)) + 
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,20) +
+  theme_bw() + labs(title = "Total looks (imm. or delayed)", y="#trials with look to target", x="Vocabulary") + 
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF_TotalLooksXVocabXGroup.png", width=4,height=3,units="in",res=200)
+
+ggplot(subset(pf.lookcounts.bysubj.wide,WordsProduced<250), aes(x=WordsProduced,y=totalLooks,color=Group,shape=Group)) + 
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,20) +
+  theme_bw() + labs(title = "Total looks (imm. or delayed)", y="#trials with look to target", x="Vocabulary") + 
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF_vocab<250_TotalLooksXVocabXGroup.png", width=4,height=3,units="in",res=200)
+
+##Any looks by age and group, as proportion of good trials (with eye contact)
+ggplot(pf.lookcounts.bysubj.wide, aes(x=ageV1Mos,y=num.Imm/totalGoodTrials,color=Group,shape=Group)) + 
+  geom_point() + geom_smooth(method=lm,se=FALSE) +
+  theme_bw() + labs(title = "Total looks (imm. or delayed)", y="Number of trials with look to target", x="Age (mos)") + 
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF_TotalLooksXAgeXGroup.png", width=3,height=3,units="in",res=200)
+
 
 ### FAR
 pf.far.relpos.totals = ddply(droplevels(subset(pf,attempt!="rep"&Position!="center"&Distance=="Far")), .(Subj,PositionRel),nrow,.drop=F)
@@ -122,7 +196,7 @@ contrasts(pf.far.relpos$Group) <- contr.helmert(2)
 contrasts(pf.far.relpos$PositionRel) <- contr.helmert(2)
 summary(glm(cbind(imm,(trials-imm)) ~ Group * PositionRel, data=pf.far.relpos, family="binomial"))
 summary(glm(cbind(delay,(trials-delay)) ~ Group * PositionRel, data=pf.far.relpos, family="binomial"))
-summary(glm(cbind(trials-looked,looked) ~ Group * PositionRel, data=pf.far.relpos, family="binomial"))
+fsummary(glm(cbind(looked,trials-looked) ~ Group * PositionRel, data=pf.far.relpos, family="binomial"))
 
 
 
@@ -136,6 +210,11 @@ ggplot(pf.far.relpos, aes(x=PositionRel, color=Group, y=delay/trials)) +
   geom_boxplot() + theme_bw() + labs(title="Delayed looks by \ntarget position (Far)", y="Proportion delayed looks to target")+
   wswl.posterplots
 dev.print(png, file="Plots/PF/PF-LD_propDelayXPositionRelXGroup.png",width=3.5, height=3.5, units="in",res=300)
+
+ggplot(pf.far.relpos, aes(x=PositionRel, color=Group, y=looked/trials)) + 
+  geom_boxplot() + theme_bw() + labs(title="Looks (imm. or delayed) \nby target position (Far)", y="Proportion looks to target") +
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF-LD_propLookXPositionRelXGroup.png",width=3.5,height=3.5,units="in",res=200)
 
 ### NEAR
 pf.near.relpos.totals = ddply(droplevels(subset(pf,attempt!="rep"&Distance=="Near")), .(Subj,PositionRel),nrow,.drop=F)
@@ -161,23 +240,45 @@ ggplot(pf.near.relpos, aes(x=PositionRel, color=Group, y=delay/trials)) +
   wswl.posterplots
 dev.print(png, file="Plots/PF/PF-SD_propDelayXPositionRelXGroup.png",width=3.5, height=3.5, units="in",res=300)
 
+ggplot(pf.near.relpos, aes(x=PositionRel, color=Group, y=looked/trials)) + 
+  geom_boxplot() + theme_bw() + labs(title="Looks (imm. or delayed) \nby target position (Near)", y="Proportion looks to target") +
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF-SD_propLooksXPositionRelXGroup.png",width=3.5, height=3.5, units="in",res=300)
+
 ggplot(pf.near.relpos, aes(x=PositionRel, color=Group, y=(trials-looked)/trials)) + 
   geom_boxplot() + theme_bw() + labs(title="No look by\n target position (Near)", y="Proportion immediate looks to target") +
   wswl.posterplots
-dev.print(png, file="Plots/PF/PF-SD_propImmXPositionRelXGroup.png",width=3.5, height=3.5, units="in",res=300)
 
+
+## any distance
+pf.relpos.totals = ddply(droplevels(subset(pf,attempt!="rep"&Position!="center")), .(Subj,PositionRel),nrow,.drop=F)
+colnames(pf.relpos.totals)[3] = "trials"
+pf.relpos.looks = ddply(subset(pf,attempt!="rep"&Position!="center"), .(Subj,PositionRel),
+                            summarise,looked=sum(looked), imm=sum(as.numeric(lookF=="Imm")), delay=sum(as.numeric(lookF=="Delay")))
+pf.relpos = merge(pf.far.relpos.totals, pf.far.relpos.looks)
+pf.relpos = droplevels(merge(pf.far.relpos, subjInfo))
+pf.relpos$PositionRel = as.factor(pf.far.relpos$PositionRel)
+contrasts(pf.relpos$Group) <- contr.helmert(2)
+contrasts(pf.relpos$PositionRel) <- contr.helmert(2)
+summary(glm(cbind(looked,(trials-looked)) ~ Group * PositionRel, data=pf.relpos, family="binomial"))
+summary(glm(cbind(delay,(trials-delay)) ~ Group * PositionRel, data=pf.near.relpos, family="binomial"))
+
+ggplot(pf.relpos, aes(x=PositionRel, color=Group, y=looked/trials)) + 
+  geom_boxplot() + theme_bw() + labs(title="Looks (imm. or delayed) \nby target position", y="Proportion looks to target") +
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF_propLooksXPositionRelXGroup.png",width=3.5, height=3.5, units="in",res=300)
 
 
 ## Immediate looks by vocabulary size and group 
 ggplot(subset(pf.lookcounts.bysubj,lookF=="Imm"), aes(x=WordsProduced, y=(num/totalTrials),color=Group, shape=Group)) + 
-  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,1) + scale_color_manual(values=c("royalblue1","orangered")) +
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,1) +
   theme_bw() + labs(title="Proportion immediate looks", y="Proportion immediate looks", x="Vocabulary") + 
   wswl.posterplots
 dev.print(png, file="Plots/PF/PF_propImmXVocabXGroup.png",width=3.5, height=3.5, units="in",res=300)
 
 ## Immediate looks by vocabulary size and group: good trials only
 ggplot(subset(pf.lookcounts.bysubj,lookF=="Imm"), aes(x=WordsProduced, y=(num/totalGoodTrials),color=Group, shape=Group)) + 
-  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,1) + scale_color_manual(values=c("royalblue1","orangered")) +
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,1) + 
   theme_bw() + labs(title="Proportion immediate looks", y="Proportion immediate looks", x="Vocabulary") + 
   wswl.posterplots
 dev.print(png, file="Plots/PF/PF_propImmXVocabXGroup_goodtrials.png",width=3.5, height=3, units="in",res=300)
@@ -191,7 +292,7 @@ dev.print(png, file="Results_1-29-15/PF_propImmXVocab_goodsubj.png",width=3, hei
 
 ## looks (immediate or delayed) by vocab size and group
 ggplot(subset(pf.lookcounts.bysubj,lookF=="Imm"), aes(x=WordsProduced, y=(totalLooks/totalTrials),color=Group,shape=Group)) + 
-  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,1) + scale_color_manual(values=c("royalblue1","orangered")) +
+  geom_point() + geom_smooth(method=lm,se=FALSE) + ylim(0,1) + 
   theme_bw() + labs(title="Looks to target (imm. or delayed)",y="Proportion looks to target",x="Vocabulary") + 
   wswl.posterplots
 dev.print(png, file="Plots/PF/PF_propTargetXVocabXGroup.png",width=3.5, height=3.5, units="in",res=300)
@@ -208,8 +309,13 @@ dev.print(png, file="Results_1-29-15/PF_propTargetXVocab_goodtrials.png",width=3
 # Near vs. Far, by Group
 pf.distance = ddply(pf.conds, .(Subj,Distance),summarise,trials=sum(trials),looked=sum(looked),notLooked=sum(notLooked))
 pf.distance = droplevels(merge(pf.distance,subjInfo))
-ggplot(pf.distance, aes())
 
+summary(glm(cbind(looked,trials-looked)~Distance * Group, data=pf.distance,family="binomial"))
+
+ggplot(pf.distance, aes(x=Distance, color=Group, y=looked/trials)) + 
+  geom_boxplot() + theme_bw() + labs(title="Looks (imm. or delayed) \nby distance", y="Proportion looks to target") +
+  wswl.posterplots
+dev.print(png, file="Plots/PF/PF_propLooksXDistanceXGroup.png",width=3.5,height=3.5,units="in",res=200)
 
 ##### Near vs. Far #####
 # groups, all trials

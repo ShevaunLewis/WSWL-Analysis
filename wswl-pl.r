@@ -17,7 +17,7 @@ with(parentLabelCodes,mean(as.numeric(category1==category2))) ## 84.3%
 
 #### overall means ####
 pl.cat.plot = pl.category.bySubj
-pl.cat.plot$category = ordered(pl.cat.plot$category, levels=c("followin","sharedattn","discrepant"),labels = c("follow-in","shared attn","discrepant"))
+#pl.cat.plot$category = ordered(pl.cat.plot$category, levels=c("followin","sharedattn","discrepant"),labels = c("Follow-in","Shared Attn","Discrepant"))
 
 #### td 18-24m only ####
 ## proportion in each category
@@ -37,9 +37,9 @@ ggplot(subset(pl.cat.plot, ageGroup%in%c("18M","24M")), aes(x=category,y=catTota
 ## proportion in each category, by group
 ggplot(pl.cat.plot, aes(x=Group,color=Group,y=(catTotal/totalSeen))) + 
   geom_boxplot() + facet_wrap(~category) + theme_bw() +
-  labs(title="Parent labels",y="Proportion of labels",x="Attention scenario")+
+  labs(title="Parent labels of each type",y="Proportion of labels")+
   wswl.posterplots
-dev.print(png,file="Plots/PL/PL_groups_propCategories_boxplot.png",width=5, height=3.5, units="in",res=200)
+dev.print(png,file="Plots/PL/PL_propCategoriesXGroup_boxplot.png",width=5, height=3.5, units="in",res=200)
 
 ##number of utterances
 summary(pl.totalUtts.bySubj$totalUtts)
@@ -48,7 +48,7 @@ ggplot(pl.totalUtts.bySubj, aes(x=Group, color=Group,y=totalUtts)) +
   geom_boxplot() + theme_bw() + 
   labs(title="Parent utterances \nabout target objects",y="Number of utterances",x="Group") +
   wswl.posterplots
-dev.print(png, file="Plots/PL/PL_groups_totalUtts_boxplot.png",width=3.5, height=3.5, units="in",res=200)
+dev.print(png, file="Plots/PL/PL_totalUttsXGroup_boxplot.png",width=3.5, height=3.5, units="in",res=200)
 
 #### Stats ####
 ### Number of utterances: do parents of children with larger vocabularies talk more? 
@@ -87,6 +87,8 @@ pl.lowseen = droplevels(subset(pl.totalUtts.bySubj, propSeen<0.5))
 pl.stat = droplevels(subset(pl, !(Subj%in%pl.lowseen$Subj)))
 pl.stat = merge(pl.stat, subjInfo, all.x=T)
 
+anova(lm(totalUtts ~  WordsProduced * Group, data=subset(pl.bySubj, !(Subj%in%pl.lowseen$Subj))))
+
 # pl.stat$cat.fi = as.character(pl.stat$category)=="followin"
 # pl.stat$cat.ja = as.character(pl.stat$category)=="sharedattn"
 # pl.stat$cat.d = as.character(pl.stat$category)=="discrepant"
@@ -102,8 +104,52 @@ pl.stat = merge(pl.stat, subjInfo, all.x=T)
 # anova(pl.discrepant.lrm2)
 
 pl.category.bySubj$category = as.factor(pl.category.bySubj$category)
-summary(glm(cbind(catTotal, (totalSeen-catTotal)) ~ category*WordsProduced, 
-            data=droplevels(subset(pl.category.bySubj, !(Subj%in%pl.lowseen$Subj))),family="binomial"))
+contrasts(pl.category.bySubj$Group) = contr.helmert(2)
+contrasts(pl.category.bySubj$category) = contr.sum(3)
+summary(glm(cbind(catTotal, (totalSeen-catTotal)) ~ category*Group, 
+            data=droplevels(subset(pl.category.bySubj, !(Subj%in%pl.lowseen$Subj))),
+            contrasts=list(category=contr.sum,Group=contr.helmert),family="binomial"))
+
+summary(glm(cbind(catTotal, totalSeen-catTotal) ~ WordsProduced * Group, 
+            data=droplevels(subset(pl.category.bySubj, !(Subj%in%pl.lowseen$Subj)&category=="FollowIn")), family="binomial"))
+summary(glm(cbind(catTotal, totalSeen-catTotal) ~ WordsProduced * Group, 
+            data=droplevels(subset(pl.category.bySubj, !(Subj%in%pl.lowseen$Subj)&category=="Discrepant")), family="binomial"))
+summary(glm(cbind(catTotal, totalSeen-catTotal) ~ WordsProduced * Group, 
+            data=droplevels(subset(pl.category.bySubj, !(Subj%in%pl.lowseen$Subj)&category=="SharedAttn")), family="binomial"))
+
+summary(glm(cbind(catTotal, totalSeen-catTotal) ~ WordsProduced + Group, 
+            data=droplevels(subset(pl.category.bySubj, !(Subj%in%pl.lowseen$Subj)&category=="FollowIn"&WordsProduced<250)), family="binomial"))
+summary(glm(cbind(catTotal, totalSeen-catTotal) ~ WordsProduced * Group, 
+            data=droplevels(subset(pl.category.bySubj, !(Subj%in%pl.lowseen$Subj)&category=="Discrepant"&WordsProduced<250)), family="binomial"))
+summary(glm(cbind(catTotal, totalSeen-catTotal) ~ WordsProduced * Group, 
+            data=droplevels(subset(pl.category.bySubj, !(Subj%in%pl.lowseen$Subj)&category=="SharedAttn"&WordsProduced<250)), family="binomial"))
+
+summary(glm(cbind(catTotal, totalSeen-catTotal) ~ WordsProduced, 
+            data=droplevels(subset(pl.category.bySubj, !(Subj%in%pl.lowseen$Subj)&category=="Discrepant"&WordsProduced<250&Group=="WS")), family="binomial"))
+summary(glm(cbind(catTotal, totalSeen-catTotal) ~ WordsProduced, 
+            data=droplevels(subset(pl.category.bySubj, !(Subj%in%pl.lowseen$Subj)&category=="Discrepant"&WordsProduced<250&Group=="TD")), family="binomial"))
+
+pl.category.bySubj.wide = merge(pl.category.bySubj.wide,pl.wordcount.bysubj)
+pl.category.bySubj.wide = merge(pl.category.bySubj.wide, subjInfo)
+pl.category.bySubj.wide.td = droplevels(subset(pl.category.bySubj.wide,Group=="TD"))
+pl.category.bySubj.wide.ws = droplevels(subset(pl.category.bySubj.wide,Group=="WS"))
+
+summary(lm(WordsProduced~mlu*ageV1Mos+totalDiscrepant, data=pl.category.bySubj.wide.td))
+summary(lm(WordsProduced~ageV1Mos+mlu*totalSharedAttn, data=pl.category.bySubj.wide.ws))
+summary(lm(WordsProduced~mlu*ageV1Mos*Group,data=pl.category.bySubj.wide))
+
+ggplot(subset(pl.category.bySubj.wide.ws,ageV1Mos<median(ageV1Mos)), aes(x=mlu, y=WordsProduced)) + geom_point() + geom_smooth(method="lm")
+ggplot(subset(pl.category.bySubj.wide.ws,ageV1Mos>=median(ageV1Mos)), aes(x=mlu, y=WordsProduced)) + geom_point() + geom_smooth(method="lm")
+ggplot(pl.category.bySubj.wide.ws, aes(x=ageV1Mos, y=WordsProduced)) + geom_point() + geom_smooth(method="lm")
+
+ggplot(pl.category.bySubj.wide, aes(x=mlu, color=Group, y=WordsProduced)) + 
+  geom_point() + geom_smooth(method="lm",se=F)
+
+summary(glm(cbind((totalSeen-totalDiscrepant),totalDiscrepant)~WordsProduced*Group,data=pl.category.bySubj.wide,family="binomial"))
+pl.category.bySubj.wide$nonDiscrep = with(pl.category.bySubj.wide, totalSeen-totalDiscrepant)
+pl.category.bySubj.wide$propNonDiscrep = with(pl.category.bySubj.wide, nonDiscrep/totalSeen)
+
+summary(lm(WordsProduced~propNonDiscrep+Group,data=pl.category.bySubj.wide))
 
 ## focus just on TD group
 # for all utterances
@@ -146,11 +192,13 @@ ggplot(pl.totalUtts.bySubj, aes(x=WordsProduced, y=totalUtts, shape=ageGroup, co
   wswl.smallplots
 dev.print(png,file="Plots/PL/PL_UttsXWordsProduced_scatter.png",width=3, height=3, units="in",res=400)
 
-ggplot(subset(pl.bySubj, ageGroup %in% c("18M","24M")), aes(x=WordsProduced, y=totalUtts)) +
-  geom_point() + geom_smooth(method=lm, se=FALSE) + theme_bw() +
-  labs(title="Parent obj utterances by vocabulary (TD)",y="# utts",x="Words Produced")+
-  wswl.smallplots
-dev.print(png, file="Plots/PL/PL_TD_UttsXWordsProduced_scatter.png", width=3, height=3, units="in", res=400)
+ggplot(pl.bySubj, aes(x=Group, color=Group, y=totalUtts)) +
+  geom_boxplot() + theme_bw() +
+  labs(title="Parent obj utterances",y="# utterances")+
+  wswl.posterplots
+dev.print(png, file="Plots/PL/PL_UttsXGroup_boxplot.png", width=3, height=3, units="in", res=200)
+
+summary(lm(totalUtts~Group*WordsProduced,data=pl.bySubj))
 
 ggplot(subset(pl.bySubj, ageGroup %in% c("18M","24M")), aes(x=Sex, y=totalUtts)) +
   geom_boxplot() + theme_bw() +
@@ -199,7 +247,19 @@ ggplot(parentLabelTypes.avg, aes(x=VocabByGroup, fill=category, y=V1)) +
 dev.print(png, file="Results-PL/PL_LabelTypesXVocabGroup.png",width=5, height=3, units="in", res=400)
 
 ## Proportion of each type of label for each group, by words produced
-ggplot(parentLabelTypes, aes(x=WordsProduced, )
+pl.category.bySubj$category = ordered(pl.category.bySubj$category, 
+                                      levels=c("followin","sharedattn","discrepant"),labels=c("FollowIn","SharedAttn","Discrepant"))
+ggplot(pl.category.bySubj, aes(x=WordsProduced, color=Group, shape=Group, y=catTotal/totalSeen)) +
+  geom_point(size=1.25) + geom_smooth(method="lm",se=F) + facet_wrap(~category) +
+  theme_bw() + wswl.posterplots + labs(title="Label types by vocabulary size",y="Proportion of labels",x="Vocabulary")+
+  theme(axis.text.x = element_text(size=10))
+dev.print(png, file="Plots/PL/PL_LabelTypesXGroupXVocab.png",width=5.5, height=3, units="in", res=200)
+
+ggplot(subset(pl.category.bySubj,WordsProduced<250), aes(x=WordsProduced, color=Group, shape=Group, y=catTotal/totalSeen)) +
+  geom_point(size=1.25) + geom_smooth(method="lm",se=F) + facet_wrap(~category) +
+  theme_bw() + wswl.posterplots + labs(title="Label types by vocabulary size",y="Proportion of labels",x="Vocabulary")+
+  theme(axis.text.x = element_text(size=10))
+dev.print(png, file="Plots/PL/PL_vocab<250_LabelTypesXGroupXVocab.png",width=5.5, height=3, units="in", res=200)
 
 ## Does the total number of labels affect the proportion of each type?
 ggplot(droplevels(subset(parentLabelTypes, category!="unseen")), aes(x=totalLabels, y=prop, shape=category, color=category)) + 

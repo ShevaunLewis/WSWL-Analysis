@@ -4,28 +4,65 @@
 
 setwd("/Volumes/Landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results/")
 #source("WSWL-Analysis/wswl-getdata.r")
-#source("WSWL-Analysis/wswl-functions.r")
+source("WSWL-Analysis/wswl-functions.r")
 
-load("wswl-data.Rda")
-load("wswl-pl.Rda")
-load("wswl-pf.Rda")
-
+load("ROutput/wswl-pl.Rda")
+load("ROutput/wswl-pf.Rda")
+load("ROutput/wswl-subjInfo.Rda")
 
 ## What is the relationship between the proportion of immediate looks and different kinds of labels?
 ## Expect negative relationship with discrepant/followin, and positive relationship with sharedattn
 
 head(pf.lookcounts.bysubj.wide)
 
-pl.pf = merge(droplevels(subset(pl.category.bySubj,category!="unseen")),pf.lookcounts.bysubj.wide)
-pl.pf$propCat = pl.pf$catTotal/pl.pf.imm$totalSeen
+pl.pf = droplevels(merge(droplevels(subset(pl.category.bySubj,category!="unseen")),pf.lookcounts.bysubj.wide))
+pl.pf$propCat = pl.pf$catTotal/pl.pf$totalSeen
+contrasts(pl.pf$Group) = contr.helmert(2)
 pl.pf.td = droplevels(subset(pl.pf, ageGroup%in%tdgroup))
 
+summary(glm(cbind(catTotal,totalSeen-catTotal) ~ num.Imm + Group, data=droplevels(subset(pl.pf, category=="followin")), family="binomial"))
+summary(glm(cbind(catTotal,totalSeen-catTotal) ~ num.Imm + Group, data=droplevels(subset(pl.pf, category=="SharedAttn")), family="binomial"))
+summary(glm(cbind(catTotal,totalSeen-catTotal) ~ num.Imm * Group, data=droplevels(subset(pl.pf, category=="Discrepant")), family="binomial"))
 
-ggplot(pl.pf.imm, aes(x=(numImm/totalTrials), y=(catTotal/totalSeen)) + 
-  geom_point(aes(shape=ageGroup, color=ageGroup),size=1) + geom_smooth(method=lm,se=FALSE,color="gray") + facet_wrap(~category) + xlim(0,1) +
+pl.pf.wide = merge(pl.category.bySubj.wide,pf.lookcounts.bysubj.wide)
+pl.pf.wide = merge(pl.pf.wide, pl.wordcount.bysubj)
+pl.pf.wide$propFI = pl.pf.wide$totalFollowin/pl.pf.wide$totalSeen
+pl.pf.wide$propSA = pl.pf.wide$totalSharedAttn/pl.pf.wide$totalSeen
+pl.pf.wide$propImm = with(pl.pf.wide,num.Imm/totalTrials)
+
+anova(lm(WordsProduced~totalSeen,data=pl.pf.wide))
+summary(lm(WordsProduced~mullenVR,data=pl.pf.wide))
+summary(lm(WordsProduced~ageV1Mos+Group*num.Imm,data=pl.pf.wide))
+summary(lm(WordsProduced~num.Imm,data=pl.pf.wide))
+summary(lm(WordsProduced~totalSharedAttn,data=pl.pf.wide))
+summary(lm(WordsProduced~ageV1Mos,data=pl.pf.wide))
+
+pl.pf.wide.td = droplevels(subset(pl.pf.wide,Group=="TD"))
+pl.pf.wide.ws = droplevels(subset(pl.pf.wide,Group=="WS"))
+
+anova(lm(WordsProduced~mlu*ageV1Mos,data=pl.pf.wide.ws))
+
+summary(lm(WordsProduced~mlu*ageV1Mos,data=pl.pf.wide.td))
+summary(lm(WordsProduced~totalLooks*ageV1Mos,data=subset(pl.pf.wide.ws,WordsProduced<250)))
+
+summary(lm(mlu~ageV1MosWordsProduced,data=pl.pf.wide.td))
+
+
+summary(lm(WordsProduced~num.Imm*Group,data=subset(pl.pf.wide,WordsProduced<250)))
+
+pl.pf.plot= pl.pf
+pl.pf.plot$category = ordered(pl.pf.plot$category, levels=c("followin","sharedattn","discrepant"),labels=c("FollowIn","SharedAttn","Discrepant"))
+ggplot(pl.pf.plot, aes(x=(num.Imm/totalTrials), y=(catTotal/totalSeen), shape=Group, color=Group)) + 
+  geom_point(size=1.25) + geom_smooth(method=lm,se=FALSE) + facet_wrap(~category) + xlim(0,1) +
   theme_bw() + labs(title="Labels by proportion of Immediate looks",y="Proportion of labels",x="Proportion immediate looks") + 
-  wswl.smallplots
-dev.print(png, file="Results-PL/PL_LabelTypeXImmLookProp_regall.png",width=5.5, height=3, units="in",res=400)
+  wswl.posterplots+theme(axis.text.x=element_text(size=10))
+dev.print(png, file="Plots/PL/PL-PF_LabelTypeXImmLookProp.png",width=5.5, height=3, units="in",res=200)
+
+ggplot(subset(pl.pf.plot,WordsProduced<250), aes(x=(num.Imm/totalTrials), y=(catTotal/totalSeen), shape=Group, color=Group)) + 
+  geom_point(size=1.25) + geom_smooth(method=lm,se=FALSE) + facet_wrap(~category) + xlim(0,1) +
+  theme_bw() + labs(title="Labels by proportion of Immediate looks",y="Proportion of labels",x="Proportion immediate looks") + 
+  wswl.posterplots+theme(axis.text.x=element_text(size=10))
+dev.print(png, file="Plots/PL/PL-PF_vocab<250_LabelTypeXImmLookProp.png",width=6, height=3.5, units="in",res=400)
 
 ggplot(parentLabelTypes.immlooks, aes(x=propImm, y=prop, shape=ageGroup, color=ageGroup)) + 
   geom_point(size=1) + geom_smooth(method=lm,se=FALSE) + facet_wrap(~category) + xlim(0,1) +

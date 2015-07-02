@@ -8,7 +8,7 @@ setwd("/Volumes/landau/PROJECTS/WS-SocialWordLearning_Shevaun/Results")
 load("ROutput/wswl-subjInfo.Rda")
 
 #### Import data ####
-pfFile = "DataSpreadsheets/PFcodes_fixed_4-20.csv"
+pfFile = "DataSpreadsheets/PFcodes_fixed.csv"
 pfTrialsFile = "DataSpreadsheets/PF_Design.csv"
 
 pf = read.csv(pfFile, header=T)

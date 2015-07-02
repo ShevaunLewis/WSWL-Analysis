@@ -61,6 +61,6 @@ pl.bySubj = merge(pl.bySubj, pl.uttTypes.bySubj)
 pl.bySubj = merge(pl.bySubj, pl.wordcount.bysubj)
 
 #### Save data, clear environment ####
-save(parentLabelCodes, pl, pl.uttTypes.bySubj, pl.totalUtts.bySubj, pl.category.bySubj, pl.category.bySubj.wide, pl.bySubj, file="ROutput/wswl-pl.Rda")
+save(parentLabelCodes, pl, pl.uttTypes.bySubj, pl.totalUtts.bySubj, pl.category.bySubj, pl.category.bySubj.wide, pl.bySubj,pl.wordcount.bysubj, file="ROutput/wswl-pl.Rda")
 rm(list=ls())
 
